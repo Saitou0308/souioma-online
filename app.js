@@ -10,9 +10,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
 
-/* =========================
+/* ========================================
    Firebase
-========================= */
+======================================== */
 
 const firebaseConfig = {
   apiKey: "AIzaSyC7QnIPDh9ZDJ13MonUCizwmAnac_RmTUk",
@@ -29,9 +29,9 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 
 
-/* =========================
-   プレイヤー用データ
-========================= */
+/* ========================================
+   キャラクター
+======================================== */
 
 const characters = [
   ["探偵", "事件の真相を追うことを仕事にしている。"],
@@ -42,7 +42,7 @@ const characters = [
   ["記者", "事件や噂について取材している。"],
   ["研究者", "研究室で様々な研究をしている。"],
   ["弁護士", "法律について詳しい。"],
-  ["芸術家", "絵や作品を作ることを仕事にしている。"],
+  ["芸術家", "作品を作ることを仕事にしている。"],
   ["会社員", "普通の会社に勤めている。"],
   ["学生", "学校に通っている。"],
   ["旅行者", "各地を旅している。"]
@@ -64,9 +64,9 @@ const characterSettings = [
 ];
 
 
-/* =========================
+/* ========================================
    事件
-========================= */
+======================================== */
 
 const cases = [
   {
@@ -104,9 +104,9 @@ const cases = [
 ];
 
 
-/* =========================
+/* ========================================
    被害者設定
-========================= */
+======================================== */
 
 const victimSettings = [
   "被害者は事件の前日に誰かと口論していた。",
@@ -120,9 +120,9 @@ const victimSettings = [
 ];
 
 
-/* =========================
+/* ========================================
    暴露カード
-========================= */
+======================================== */
 
 const exposureCards = [
   "事件の時間を妙に正確に覚えている。",
@@ -176,9 +176,9 @@ const exposureCards = [
 ];
 
 
-/* =========================
+/* ========================================
    エンディング
-========================= */
+======================================== */
 
 const endings = [
   "事件の真相を巡り、屋敷にいた全員の疑いが交錯した。",
@@ -189,9 +189,9 @@ const endings = [
 ];
 
 
-/* =========================
+/* ========================================
    状態
-========================= */
+======================================== */
 
 let roomId = null;
 let myId = null;
@@ -199,9 +199,9 @@ let myName = null;
 let unsubscribeRoom = null;
 
 
-/* =========================
-   ユーティリティ
-========================= */
+/* ========================================
+   共通関数
+======================================== */
 
 function $(id) {
   return document.getElementById(id);
@@ -211,228 +211,290 @@ function shuffle(array) {
   return [...array].sort(() => Math.random() - 0.5);
 }
 
-function randomId() {
-  return Math.random().toString(36).substring(2, 12);
+function createId() {
+  return Math.random()
+    .toString(36)
+    .substring(2, 12);
 }
 
-function randomRoomCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+function createRoomCode() {
+  return Math.floor(
+    100000 + Math.random() * 900000
+  ).toString();
 }
 
 function showScreen(id) {
-  document.querySelectorAll(".screen").forEach(screen => {
-    screen.classList.add("hidden");
-  });
+
+  document
+    .querySelectorAll(".screen")
+    .forEach(screen => {
+      screen.classList.add("hidden");
+    });
 
   $(id).classList.remove("hidden");
 }
 
 function getPlayers(room) {
-  return room.players || {};
-}
 
-function getPlayerArray(room) {
-  return Object.entries(getPlayers(room)).map(([id, player]) => ({
+  return Object.entries(
+    room.players || {}
+  ).map(([id, player]) => ({
     id,
     ...player
   }));
 }
 
 
-/* =========================
-   ホーム
-========================= */
+/* ========================================
+   部屋作成
+======================================== */
 
-$("createBtn").addEventListener("click", async () => {
+$("createBtn").addEventListener(
+  "click",
+  async () => {
 
-  const name = $("nameInput").value.trim();
+    const name =
+      $("nameInput").value.trim();
 
-  if (!name) {
-    $("homeMessage").textContent =
-      "ニックネームを入力してください。";
-    return;
-  }
+    if (!name) {
 
-  myId = randomId();
-  myName = name;
-  roomId = randomRoomCode();
-
-  const room = {
-    hostId: myId,
-    status: "lobby",
-
-    players: {
-      [myId]: {
-        name: myName
-      }
-    }
-  };
-
-  try {
-
-    await set(
-      ref(db, `rooms/${roomId}`),
-      room
-    );
-
-    enterLobby();
-
-  } catch (error) {
-
-    console.error(error);
-
-    $("homeMessage").textContent =
-      "部屋を作れませんでした。";
-  }
-});
-
-
-$("joinBtn").addEventListener("click", async () => {
-
-  const name = $("nameInput").value.trim();
-  const code = $("roomInput").value.trim();
-
-  if (!name) {
-    $("homeMessage").textContent =
-      "ニックネームを入力してください。";
-    return;
-  }
-
-  if (!/^\d{6}$/.test(code)) {
-    $("homeMessage").textContent =
-      "6桁のルームコードを入力してください。";
-    return;
-  }
-
-  try {
-
-    const snapshot =
-      await get(ref(db, `rooms/${code}`));
-
-    if (!snapshot.exists()) {
       $("homeMessage").textContent =
-        "そのルームは存在しません。";
+        "ニックネームを入力してください。";
+
       return;
     }
 
-    const room = snapshot.val();
-
-    if (room.status !== "lobby") {
-      $("homeMessage").textContent =
-        "このゲームはすでに始まっています。";
-      return;
-    }
-
-    const players =
-      getPlayerArray(room);
-
-    if (players.length >= 6) {
-      $("homeMessage").textContent =
-        "このルームは満員です。";
-      return;
-    }
-
-    myId = randomId();
+    myId = createId();
     myName = name;
-    roomId = code;
+    roomId = createRoomCode();
 
-    await update(
-      ref(db, `rooms/${roomId}/players/${myId}`),
-      {
-        name: myName
+    const room = {
+
+      hostId:
+        myId,
+
+      status:
+        "lobby",
+
+      players: {
+
+        [myId]: {
+
+          name:
+            myName
+        }
       }
-    );
+    };
 
-    enterLobby();
+    try {
 
-  } catch (error) {
+      await set(
+        ref(db, `rooms/${roomId}`),
+        room
+      );
 
-    console.error(error);
+      enterLobby();
 
-    $("homeMessage").textContent =
-      "参加できませんでした。";
+    } catch (error) {
+
+      console.error(error);
+
+      $("homeMessage").textContent =
+        "部屋を作れませんでした。";
+    }
   }
-});
+);
 
 
-/* =========================
+/* ========================================
+   部屋参加
+======================================== */
+
+$("joinBtn").addEventListener(
+  "click",
+  async () => {
+
+    const name =
+      $("nameInput").value.trim();
+
+    const code =
+      $("roomInput").value.trim();
+
+    if (!name) {
+
+      $("homeMessage").textContent =
+        "ニックネームを入力してください。";
+
+      return;
+    }
+
+    if (!/^\d{6}$/.test(code)) {
+
+      $("homeMessage").textContent =
+        "6桁のルームコードを入力してください。";
+
+      return;
+    }
+
+    try {
+
+      const snapshot =
+        await get(
+          ref(db, `rooms/${code}`)
+        );
+
+      if (!snapshot.exists()) {
+
+        $("homeMessage").textContent =
+          "そのルームは存在しません。";
+
+        return;
+      }
+
+      const room =
+        snapshot.val();
+
+      if (room.status !== "lobby") {
+
+        $("homeMessage").textContent =
+          "このゲームはすでに始まっています。";
+
+        return;
+      }
+
+      const players =
+        getPlayers(room);
+
+      if (players.length >= 6) {
+
+        $("homeMessage").textContent =
+          "このルームは満員です。";
+
+        return;
+      }
+
+      myId = createId();
+      myName = name;
+      roomId = code;
+
+      await update(
+        ref(
+          db,
+          `rooms/${roomId}/players/${myId}`
+        ),
+        {
+          name:
+            myName
+        }
+      );
+
+      enterLobby();
+
+    } catch (error) {
+
+      console.error(error);
+
+      $("homeMessage").textContent =
+        "参加できませんでした。";
+    }
+  }
+);
+
+
+/* ========================================
    ロビー
-========================= */
+======================================== */
 
 function enterLobby() {
 
   showScreen("lobbyScreen");
 
-  $("roomCode").textContent = roomId;
+  $("roomCode").textContent =
+    roomId;
 
   if (unsubscribeRoom) {
     unsubscribeRoom();
   }
 
-  unsubscribeRoom = onValue(
-    ref(db, `rooms/${roomId}`),
-    snapshot => {
+  unsubscribeRoom =
+    onValue(
+      ref(db, `rooms/${roomId}`),
+      snapshot => {
 
-      if (!snapshot.exists()) {
-        $("lobbyMessage").textContent =
-          "ルームが見つかりません。";
-        return;
+        if (!snapshot.exists()) {
+          return;
+        }
+
+        const room =
+          snapshot.val();
+
+        if (room.status === "game") {
+
+          showGame(room);
+
+          return;
+        }
+
+        if (room.status === "vote") {
+
+          showVote(room);
+
+          return;
+        }
+
+        if (room.status === "result") {
+
+          showResult(room);
+
+          return;
+        }
+
+        renderLobby(room);
       }
-
-      const room = snapshot.val();
-
-      if (room.status === "game") {
-        showGame(room);
-        return;
-      }
-
-      if (room.status === "vote") {
-        showVote(room);
-        return;
-      }
-
-      if (room.status === "result") {
-        showResult(room);
-        return;
-      }
-
-      renderLobby(room);
-    }
-  );
+    );
 }
 
+
+/* ========================================
+   ロビー表示
+======================================== */
 
 function renderLobby(room) {
 
   const players =
-    getPlayerArray(room);
+    getPlayers(room);
 
   $("playerList").innerHTML =
-    players.map((player, index) => {
+    players.map(
+      (player, index) => {
 
-      const crown =
-        player.id === room.hostId
-          ? " 👑"
-          : "";
+        const crown =
+          player.id === room.hostId
+            ? " 👑"
+            : "";
 
-      return `
-        <div class="playerItem">
-          ${index + 1}. ${player.name}${crown}
-        </div>
-      `;
-
-    }).join("");
+        return `
+          <div class="playerItem">
+            ${index + 1}. ${player.name}${crown}
+          </div>
+        `;
+      }
+    ).join("");
 
   if (
     room.hostId === myId &&
     players.length >= 3
   ) {
 
-    $("startBtn").classList.remove("hidden");
+    $("startBtn")
+      .classList
+      .remove("hidden");
 
   } else {
 
-    $("startBtn").classList.add("hidden");
+    $("startBtn")
+      .classList
+      .add("hidden");
   }
 
   if (players.length < 3) {
@@ -448,130 +510,174 @@ function renderLobby(room) {
 }
 
 
-/* =========================
+/* ========================================
    ゲーム開始
-========================= */
+======================================== */
 
-$("startBtn").addEventListener("click", async () => {
+$("startBtn").addEventListener(
+  "click",
+  async () => {
 
-  const snapshot =
-    await get(ref(db, `rooms/${roomId}`));
+    const snapshot =
+      await get(
+        ref(db, `rooms/${roomId}`)
+      );
 
-  if (!snapshot.exists()) return;
-
-  const room =
-    snapshot.val();
-
-  if (room.hostId !== myId) return;
-
-  const players =
-    getPlayerArray(room);
-
-  if (players.length < 3 || players.length > 6) {
-    return;
-  }
-
-  const characterPool =
-    shuffle(characters);
-
-  const settingPool =
-    shuffle(characterSettings);
-
-  const playerData = {};
-
-  players.forEach((player, index) => {
-
-    playerData[player.id] = {
-
-      name: player.name,
-
-      character:
-        characterPool[index][0],
-
-      characterDescription:
-        characterPool[index][1],
-
-      secretSetting:
-        settingPool[index],
-
-      cards:
-        shuffle(exposureCards).slice(0, 4)
-    };
-  });
-
-  const selectedCase =
-    cases[Math.floor(Math.random() * cases.length)];
-
-  const selectedVictimSetting =
-    victimSettings[
-      Math.floor(Math.random() * victimSettings.length)
-    ];
-
-  const selectedEnding =
-    endings[
-      Math.floor(Math.random() * endings.length)
-    ];
-
-  /*
-    3人 → 3ラウンド
-    4～6人 → 2ラウンド
-  */
-
-  const maxRounds =
-    players.length === 3
-      ? 3
-      : 2;
-
-  /*
-    最初は館の主人がターゲットを選ぶ
-  */
-
-  await update(
-    ref(db, `rooms/${roomId}`),
-    {
-
-      status: "game",
-
-      caseTitle:
-        selectedCase.title,
-
-      caseText:
-        selectedCase.text,
-
-      victimSetting:
-        selectedVictimSetting,
-
-      ending:
-        selectedEnding,
-
-      playerData,
-
-      revealedCards: {},
-
-      exposedThisRound: {},
-
-      round: 1,
-
-      maxRounds,
-
-      selectorId:
-        room.hostId,
-
-      targetId: null,
-
-      phase: "select",
-
-      votes: {},
-
-      result: null
+    if (!snapshot.exists()) {
+      return;
     }
-  );
-});
+
+    const room =
+      snapshot.val();
+
+    if (room.hostId !== myId) {
+      return;
+    }
+
+    const players =
+      getPlayers(room);
+
+    if (
+      players.length < 3 ||
+      players.length > 6
+    ) {
+      return;
+    }
+
+    const characterPool =
+      shuffle(characters);
+
+    const settingPool =
+      shuffle(characterSettings);
+
+    const playerData = {};
+
+    players.forEach(
+      (player, index) => {
+
+        playerData[player.id] = {
+
+          name:
+            player.name,
+
+          character:
+            characterPool[index][0],
+
+          characterDescription:
+            characterPool[index][1],
+
+          secretSetting:
+            settingPool[index],
+
+          /*
+            各プレイヤー4枚
+          */
+
+          cards:
+            shuffle(exposureCards).slice(0, 4)
+        };
+      }
+    );
 
 
-/* =========================
+    const selectedCase =
+      cases[
+        Math.floor(
+          Math.random() * cases.length
+        )
+      ];
+
+    const selectedVictimSetting =
+      victimSettings[
+        Math.floor(
+          Math.random() *
+          victimSettings.length
+        )
+      ];
+
+    const selectedEnding =
+      endings[
+        Math.floor(
+          Math.random() *
+          endings.length
+        )
+      ];
+
+
+    /*
+      3人 → 3ラウンド
+      4～6人 → 2ラウンド
+    */
+
+    const maxRounds =
+      players.length === 3
+        ? 3
+        : 2;
+
+
+    /*
+      最初から部屋主が選択
+    */
+
+    await update(
+      ref(db, `rooms/${roomId}`),
+      {
+
+        status:
+          "game",
+
+        caseTitle:
+          selectedCase.title,
+
+        caseText:
+          selectedCase.text,
+
+        victimSetting:
+          selectedVictimSetting,
+
+        ending:
+          selectedEnding,
+
+        playerData,
+
+        revealedCards:
+          {},
+
+        exposedThisRound:
+          {},
+
+        round:
+          1,
+
+        maxRounds,
+
+        /*
+          常に部屋主
+        */
+
+        selectorId:
+          room.hostId,
+
+        targetId:
+          null,
+
+        phase:
+          "select",
+
+        votes:
+          {},
+
+        result:
+          null
+      }
+    );
+  }
+);
+
+
+/* ========================================
    ゲーム画面
-========================= */
+======================================== */
 
 function showGame(room) {
 
@@ -591,45 +697,55 @@ function showGame(room) {
 
   action.innerHTML = "";
 
-  /*
-    自分のキャラクター情報
-  */
+
+  /* --------------------------------
+     自分のキャラクター
+  -------------------------------- */
 
   const myData =
     room.playerData?.[myId];
 
   if (myData) {
 
-    const info =
+    const characterBox =
       document.createElement("div");
 
-    info.className = "storyBox";
+    characterBox.className =
+      "storyBox";
 
-    info.innerHTML = `
-      <div class="label">YOUR CHARACTER</div>
+    characterBox.innerHTML = `
 
-      <h3>🎭 ${myData.character}</h3>
+      <div class="label">
+        YOUR CHARACTER
+      </div>
 
-      <p>${myData.characterDescription}</p>
+      <h3>
+        🎭 ${myData.character}
+      </h3>
 
       <p>
-        <strong>あなたの設定：</strong><br>
+        ${myData.characterDescription}
+      </p>
+
+      <p>
+        <strong>あなたの設定</strong><br>
         ${myData.secretSetting}
       </p>
+
     `;
 
-    action.appendChild(info);
+    action.appendChild(characterBox);
   }
 
 
-  /* =====================
+  /* =================================
      被害者設定
-  ===================== */
+  ================================= */
 
   if (room.phase === "victim") {
 
     $("turnText").textContent =
-      "被害者設定";
+      "被害者設定公開";
 
     const victimBox =
       document.createElement("div");
@@ -638,12 +754,23 @@ function showGame(room) {
       "revealedCard";
 
     victimBox.innerHTML = `
-      <h3>📜 被害者の設定</h3>
-      <p>${room.victimSetting}</p>
+
+      <h3>
+        📜 被害者の設定
+      </h3>
+
+      <p>
+        ${room.victimSetting}
+      </p>
+
     `;
 
     action.appendChild(victimBox);
 
+
+    /*
+      次ラウンド / 投票
+    */
 
     if (room.hostId === myId) {
 
@@ -653,7 +780,11 @@ function showGame(room) {
       button.className =
         "mainBtn";
 
-      if (room.round < room.maxRounds) {
+
+      if (
+        room.round <
+        room.maxRounds
+      ) {
 
         button.textContent =
           "次のラウンドへ";
@@ -681,7 +812,7 @@ function showGame(room) {
         "message";
 
       message.textContent =
-        "館の主人が次へ進むのを待っています……";
+        "部屋主が次へ進むのを待っています……";
 
       action.appendChild(message);
     }
@@ -690,22 +821,18 @@ function showGame(room) {
   }
 
 
-  /* =====================
+  /* =================================
      公開済みカード
-  ===================== */
+  ================================= */
 
-  if (
-    room.phase === "revealed" ||
-    room.phase === "select"
-  ) {
+  const revealed =
+    room.revealedCards || {};
 
-    const revealed =
-      room.revealedCards || {};
+  const players =
+    getPlayers(room);
 
-    const players =
-      getPlayerArray(room);
-
-    Object.entries(revealed).forEach(
+  Object.entries(revealed)
+    .forEach(
       ([playerId, card]) => {
 
         const player =
@@ -720,22 +847,27 @@ function showGame(room) {
           "revealedCard";
 
         box.innerHTML = `
-          <h3>🎴 ${player ? player.name : "プレイヤー"}</h3>
-          <p>${card}</p>
+
+          <h3>
+            🎴 ${player
+              ? player.name
+              : "プレイヤー"}
+          </h3>
+
+          <p>
+            ${card}
+          </p>
+
         `;
 
         action.appendChild(box);
       }
     );
-  }
 
 
-  /* =====================
+  /* =================================
      全員暴露済み
-  ===================== */
-
-  const players =
-    getPlayerArray(room);
+  ================================= */
 
   const exposed =
     room.exposedThisRound || {};
@@ -743,18 +875,12 @@ function showGame(room) {
   const allExposed =
     players.length > 0 &&
     players.every(
-      player => exposed[player.id] === true
+      player =>
+        exposed[player.id] === true
     );
 
-  /*
-    万が一 phase が revealed のままでも、
-    全員暴露済みなら被害者設定へ進める
-  */
 
-  if (
-    allExposed &&
-    room.phase !== "victim"
-  ) {
+  if (allExposed) {
 
     $("turnText").textContent =
       "暴露完了";
@@ -766,12 +892,14 @@ function showGame(room) {
       "message";
 
     message.textContent =
-      room.hostId === myId
-        ? "全員のカードが公開されました。"
-        : "全員のカードが公開されました。";
+      "全員の暴露カードが公開されました。";
 
     action.appendChild(message);
 
+
+    /*
+      部屋主だけが次へ進める
+    */
 
     if (room.hostId === myId) {
 
@@ -782,7 +910,7 @@ function showGame(room) {
         "mainBtn";
 
       button.textContent =
-        "被害者設定を公開";
+        "📜 被害者設定を公開";
 
       button.onclick =
         async () => {
@@ -790,7 +918,8 @@ function showGame(room) {
           await update(
             ref(db, `rooms/${roomId}`),
             {
-              phase: "victim"
+              phase:
+                "victim"
             }
           );
         };
@@ -802,87 +931,21 @@ function showGame(room) {
   }
 
 
-  /* =====================
-     次のターゲット選択
-  ===================== */
-
-  if (room.phase === "revealed") {
-
-    $("turnText").textContent =
-      "次のターゲット";
-
-    if (room.selectorId === myId) {
-
-      const title =
-        document.createElement("h3");
-
-      title.textContent =
-        "次に暴露する人を選んでください";
-
-      action.appendChild(title);
-
-      players.forEach(player => {
-
-        if (player.id === myId) return;
-
-        if (exposed[player.id]) return;
-
-        const button =
-          document.createElement("button");
-
-        button.className =
-          "mainBtn";
-
-        button.textContent =
-          `🎴 ${player.name}`;
-
-        button.onclick =
-          () => chooseNextTarget(
-            player.id,
-            room
-          );
-
-        action.appendChild(button);
-      });
-
-    } else {
-
-      const selector =
-        players.find(
-          p => p.id === room.selectorId
-        );
-
-      const message =
-        document.createElement("p");
-
-      message.className =
-        "message";
-
-      message.textContent =
-        `${selector ? selector.name : "プレイヤー"}が次のターゲットを選んでいます……`;
-
-      action.appendChild(message);
-    }
-
-    return;
-  }
-
-
-  /* =====================
-     最初のターゲット選択
-  ===================== */
+  /* =================================
+     部屋主によるターゲット選択
+  ================================= */
 
   if (room.phase === "select") {
 
     $("turnText").textContent =
-      "ターゲット選択";
+      "部屋主が選択中";
 
-    if (room.selectorId !== myId) {
 
-      const selector =
-        players.find(
-          p => p.id === room.selectorId
-        );
+    /*
+      部屋主以外
+    */
+
+    if (room.hostId !== myId) {
 
       const message =
         document.createElement("p");
@@ -891,30 +954,42 @@ function showGame(room) {
         "message";
 
       message.textContent =
-        `${selector ? selector.name : "館の主人"}が暴露する人を選んでいます……`;
+        "👑 部屋主が次に暴露する人を選んでいます……";
 
       action.appendChild(message);
 
       return;
     }
 
+
+    /*
+      部屋主
+    */
+
     const title =
       document.createElement("h3");
 
     title.textContent =
-      "暴露する人を選んでください";
+      "🎴 暴露する人を選んでください";
 
     action.appendChild(title);
+
 
     players.forEach(player => {
 
       /*
-        自分自身は選べない
+        すでに暴露済みなら選べない
       */
 
-      if (player.id === myId) return;
+      if (exposed[player.id]) {
+        return;
+      }
 
-      if (exposed[player.id]) return;
+
+      /*
+        部屋主自身も選択可能。
+        原作寄りにするなら後から変更可能。
+      */
 
       const button =
         document.createElement("button");
@@ -933,19 +1008,94 @@ function showGame(room) {
 
       action.appendChild(button);
     });
+
+    return;
+  }
+
+
+  /* =================================
+     公開後
+  ================================= */
+
+  if (room.phase === "revealed") {
+
+    $("turnText").textContent =
+      "暴露カード公開";
+
+
+    /*
+      部屋主が次の人を選ぶ
+    */
+
+    if (room.hostId === myId) {
+
+      const title =
+        document.createElement("h3");
+
+      title.textContent =
+        "次に暴露する人を選んでください";
+
+      action.appendChild(title);
+
+
+      players.forEach(player => {
+
+        if (exposed[player.id]) {
+          return;
+        }
+
+        const button =
+          document.createElement("button");
+
+        button.className =
+          "mainBtn";
+
+        button.textContent =
+          `🎴 ${player.name}`;
+
+        button.onclick =
+          () => revealPlayer(
+            player.id,
+            room
+          );
+
+        action.appendChild(button);
+      });
+
+    } else {
+
+      const message =
+        document.createElement("p");
+
+      message.className =
+        "message";
+
+      message.textContent =
+        "部屋主が次の暴露対象を選んでいます……";
+
+      action.appendChild(message);
+    }
   }
 }
 
 
-/* =========================
-   暴露
-========================= */
+/* ========================================
+   カードを公開
+======================================== */
 
-async function revealPlayer(playerId, room) {
+async function revealPlayer(
+  playerId,
+  room
+) {
 
-  if (room.selectorId !== myId) {
+  /*
+    部屋主以外は操作不可
+  */
+
+  if (room.hostId !== myId) {
     return;
   }
+
 
   const playerData =
     room.playerData?.[playerId];
@@ -954,53 +1104,46 @@ async function revealPlayer(playerId, room) {
     return;
   }
 
+
   const exposed =
     room.exposedThisRound || {};
 
+
   /*
-    すでに暴露済みなら選べない
+    すでに暴露済みなら無視
   */
 
   if (exposed[playerId]) {
     return;
   }
 
-  /*
-    このプレイヤーの4枚から、
-    まだ公開されていないカードを選ぶ
-  */
-
-  const revealedCards =
-    room.revealedCards || {};
-
-  const alreadyRevealed =
-    revealedCards[playerId];
-
-  let availableCards =
-    playerData.cards.filter(
-      card => card !== alreadyRevealed
-    );
 
   /*
-    4枚全部から選ぶため、
-    同じカード名が重複していても
-    ランダムに選択
+    4枚のカードからランダムに1枚
   */
 
-  if (availableCards.length === 0) {
-    availableCards =
-      playerData.cards;
+  const cards =
+    playerData.cards || [];
+
+  if (cards.length === 0) {
+    return;
   }
 
+
   const selectedCard =
-    availableCards[
+    cards[
       Math.floor(
-        Math.random() * availableCards.length
+        Math.random() * cards.length
       )
     ];
 
 
+  const revealedCards =
+    room.revealedCards || {};
+
+
   const newRevealedCards = {
+
     ...revealedCards,
 
     [playerId]:
@@ -1009,6 +1152,7 @@ async function revealPlayer(playerId, room) {
 
 
   const newExposed = {
+
     ...exposed,
 
     [playerId]:
@@ -1017,8 +1161,12 @@ async function revealPlayer(playerId, room) {
 
 
   const players =
-    getPlayerArray(room);
+    getPlayers(room);
 
+
+  /*
+    全員公開されたか
+  */
 
   const allExposed =
     players.every(
@@ -1028,9 +1176,7 @@ async function revealPlayer(playerId, room) {
 
 
   /*
-    全員暴露済みなら、
-    ここで即座に victim にする。
-    これがラウンド2へ進めない問題の対策。
+    全員なら即座に被害者設定へ
   */
 
   if (allExposed) {
@@ -1061,8 +1207,8 @@ async function revealPlayer(playerId, room) {
 
 
   /*
-    まだ暴露されていない人がいる場合、
-    今暴露された本人が次のターゲットを選ぶ。
+    まだ残っているなら
+    部屋主がまた選ぶ
   */
 
   await update(
@@ -1079,7 +1225,7 @@ async function revealPlayer(playerId, room) {
         playerId,
 
       selectorId:
-        playerId,
+        room.hostId,
 
       phase:
         "revealed"
@@ -1088,49 +1234,9 @@ async function revealPlayer(playerId, room) {
 }
 
 
-/* =========================
-   次のターゲット
-========================= */
-
-async function chooseNextTarget(
-  targetId,
-  room
-) {
-
-  if (room.selectorId !== myId) {
-    return;
-  }
-
-  const exposed =
-    room.exposedThisRound || {};
-
-  if (exposed[targetId]) {
-    return;
-  }
-
-  if (targetId === myId) {
-    return;
-  }
-
-  await update(
-    ref(db, `rooms/${roomId}`),
-    {
-
-      targetId,
-
-      selectorId:
-        myId,
-
-      phase:
-        "select"
-    }
-  );
-}
-
-
-/* =========================
+/* ========================================
    次のラウンド
-========================= */
+======================================== */
 
 async function nextRound() {
 
@@ -1146,16 +1252,31 @@ async function nextRound() {
   const room =
     snapshot.val();
 
+
+  /*
+    部屋主だけ
+  */
+
   if (room.hostId !== myId) {
     return;
   }
 
-  if (room.round >= room.maxRounds) {
+
+  /*
+    最終ラウンドからは進めない
+  */
+
+  if (
+    room.round >=
+    room.maxRounds
+  ) {
     return;
   }
 
+
   const nextRoundNumber =
     room.round + 1;
+
 
   await update(
     ref(db, `rooms/${roomId}`),
@@ -1164,15 +1285,17 @@ async function nextRound() {
       round:
         nextRoundNumber,
 
-      revealedCards: {},
+      revealedCards:
+        {},
 
-      exposedThisRound: {},
+      exposedThisRound:
+        {},
 
-      targetId: null,
+      targetId:
+        null,
 
       /*
-        各ラウンドの最初は
-        館の主人がターゲットを選ぶ
+        次ラウンドも部屋主
       */
 
       selectorId:
@@ -1185,9 +1308,9 @@ async function nextRound() {
 }
 
 
-/* =========================
+/* ========================================
    投票開始
-========================= */
+======================================== */
 
 async function startVote() {
 
@@ -1207,6 +1330,7 @@ async function startVote() {
     return;
   }
 
+
   await update(
     ref(db, `rooms/${roomId}`),
     {
@@ -1214,38 +1338,39 @@ async function startVote() {
       status:
         "vote",
 
-      votes: {}
+      votes:
+        {},
+
+      result:
+        null
     }
   );
 }
 
 
-/* =========================
+/* ========================================
    投票画面
-========================= */
+======================================== */
 
 function showVote(room) {
 
   showScreen("voteScreen");
 
   const players =
-    getPlayerArray(room);
+    getPlayers(room);
 
   const voteList =
     $("voteList");
 
   voteList.innerHTML = "";
 
+
   const votes =
     room.votes || {};
 
-  /*
-    すでに自分が投票済みなら
-    ボタンを押せないようにする
-  */
-
   const alreadyVoted =
-    votes[myId];
+    Boolean(votes[myId]);
+
 
   players.forEach(player => {
 
@@ -1257,6 +1382,7 @@ function showVote(room) {
       return;
     }
 
+
     const button =
       document.createElement("button");
 
@@ -1266,9 +1392,11 @@ function showVote(room) {
     button.textContent =
       `🗳️ ${player.name}`;
 
+
     if (alreadyVoted) {
       button.disabled = true;
     }
+
 
     button.onclick =
       async () => {
@@ -1288,16 +1416,20 @@ function showVote(room) {
         const currentVotes =
           current.votes || {};
 
+
         if (currentVotes[myId]) {
           return;
         }
 
+
         const newVotes = {
+
           ...currentVotes,
 
           [myId]:
             player.id
         };
+
 
         await update(
           ref(db, `rooms/${roomId}`),
@@ -1308,6 +1440,7 @@ function showVote(room) {
         );
       };
 
+
     voteList.appendChild(button);
   });
 
@@ -1315,12 +1448,13 @@ function showVote(room) {
   const voteCount =
     Object.keys(votes).length;
 
+
   $("voteMessage").textContent =
     `${voteCount} / ${players.length} 人が投票済み`;
 
 
   /*
-    全員投票済みなら結果へ
+    全員投票済み
   */
 
   if (
@@ -1333,72 +1467,70 @@ function showVote(room) {
 }
 
 
-/* =========================
+/* ========================================
    結果計算
-========================= */
+======================================== */
 
 async function calculateResult(room) {
 
   const votes =
     room.votes || {};
 
-  const voteTargets =
+  const targets =
     Object.values(votes);
 
-  if (voteTargets.length === 0) {
+
+  if (targets.length === 0) {
     return;
   }
 
+
   const counts = {};
 
-  voteTargets.forEach(targetId => {
 
-    counts[targetId] =
-      (counts[targetId] || 0) + 1;
-  });
+  targets.forEach(
+    targetId => {
 
-
-  let highest =
-    0;
-
-  let winners = [];
-
-
-  Object.entries(counts).forEach(
-    ([playerId, count]) => {
-
-      if (count > highest) {
-
-        highest =
-          count;
-
-        winners =
-          [playerId];
-
-      } else if (count === highest) {
-
-        winners.push(playerId);
-      }
+      counts[targetId] =
+        (counts[targetId] || 0) + 1;
     }
   );
 
 
-  const winnerNames =
+  let highest = 0;
+  let winners = [];
+
+
+  Object.entries(counts)
+    .forEach(
+      ([playerId, count]) => {
+
+        if (count > highest) {
+
+          highest =
+            count;
+
+          winners =
+            [playerId];
+
+        } else if (
+          count === highest
+        ) {
+
+          winners.push(
+            playerId
+          );
+        }
+      }
+    );
+
+
+  const names =
     winners.map(
       id =>
         room.players?.[id]?.name ||
         "不明"
     );
-
-
-  const result = {
-
-    names:
-      winnerNames,
-
-    votes:
-      counts
-  };
 
 
   await update(
@@ -1408,15 +1540,21 @@ async function calculateResult(room) {
       status:
         "result",
 
-      result
+      result: {
+
+        names,
+
+        votes:
+          counts
+      }
     }
   );
 }
 
 
-/* =========================
+/* ========================================
    結果画面
-========================= */
+======================================== */
 
 function showResult(room) {
 
@@ -1426,9 +1564,9 @@ function showResult(room) {
     room.result || {};
 
   const players =
-    getPlayerArray(room);
+    getPlayers(room);
 
-  const winnerNames =
+  const names =
     result.names || [];
 
   const counts =
@@ -1437,15 +1575,19 @@ function showResult(room) {
 
   $("resultText").innerHTML = `
 
-    <h3>最多票</h3>
+    <h3>
+      最多票
+    </h3>
 
     <p>
-      ${winnerNames.join("、")}
+      ${names.join("、")}
     </p>
 
     <hr>
 
-    <h3>投票結果</h3>
+    <h3>
+      投票結果
+    </h3>
 
     ${players.map(player => `
 
@@ -1465,9 +1607,9 @@ function showResult(room) {
 }
 
 
-/* =========================
+/* ========================================
    ルームコードコピー
-========================= */
+======================================== */
 
 $("copyBtn").addEventListener(
   "click",
@@ -1491,9 +1633,9 @@ $("copyBtn").addEventListener(
 );
 
 
-/* =========================
-   ホームへ戻る
-========================= */
+/* ========================================
+   ホームへ
+======================================== */
 
 $("backHomeBtn").addEventListener(
   "click",
@@ -1519,8 +1661,8 @@ $("backHomeBtn").addEventListener(
 );
 
 
-/* =========================
+/* ========================================
    起動
-========================= */
+======================================== */
 
 showScreen("homeScreen");
