@@ -36,7 +36,6 @@
       <div class="separator">または</div>
 
       <div class="joinBox">
-
         <input
           id="roomInput"
           maxlength="6"
@@ -47,7 +46,6 @@
         <button id="joinBtn">
           参加
         </button>
-
       </div>
 
       <p id="homeMessage" class="message"></p>
@@ -58,7 +56,6 @@
 
   <!-- ロビー -->
   <section id="lobbyScreen" class="screen hidden">
-
     <div class="card">
 
       <h2>👥 待機ルーム</h2>
@@ -85,13 +82,11 @@
       </button>
 
     </div>
-
   </section>
 
 
   <!-- ゲーム -->
   <section id="gameScreen" class="screen hidden">
-
     <div class="card">
 
       <div class="gameHeader">
@@ -99,6 +94,8 @@
         <span id="turnText"></span>
       </div>
 
+
+      <!-- 事件 -->
       <div class="storyBox">
 
         <div class="label">CASE</div>
@@ -112,27 +109,23 @@
       </div>
 
 
-      <div class="secretBox">
+      <!-- 暴露 -->
+      <div class="storyBox">
 
-        <div class="label">SECRET</div>
+        <div class="label">EXPOSURE</div>
 
-        <h3>🤫 あなたの秘密</h3>
+        <h2>🎴 暴露カード</h2>
 
-        <p id="secretText"></p>
+        <div id="actionArea"></div>
 
       </div>
 
-
-      <div id="actionArea"></div>
-
     </div>
-
   </section>
 
 
   <!-- 投票 -->
   <section id="voteScreen" class="screen hidden">
-
     <div class="card">
 
       <h2>🗳️ 犯人投票</h2>
@@ -146,13 +139,11 @@
       <p id="voteMessage" class="message"></p>
 
     </div>
-
   </section>
 
 
   <!-- 結果 -->
   <section id="resultScreen" class="screen hidden">
-
     <div class="card">
 
       <h2>🎬 結果発表</h2>
@@ -164,10 +155,10 @@
       </button>
 
     </div>
-
   </section>
 
 </div>
+
 
 <script type="module" src="app.js"></script>
 
