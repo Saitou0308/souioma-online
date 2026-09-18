@@ -9,7 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBnZQkQ8R0s3J5VQ7JY2v0Qv9VvQ4m0xQ",
+  apiKey: "AIzaSyC7QnIPDh9ZDJ13MonUCizwmAnac_RmTUk",
   authDomain: "souioma-online.firebaseapp.com",
   databaseURL: "https://souioma-online-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "souioma-online",
