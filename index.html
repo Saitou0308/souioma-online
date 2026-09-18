@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>そういうお前はどうなんだ？ ONLINE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+  <header>
+    <h1>そういうお前は<br>どうなんだ？</h1>
+    <div class="online">● ONLINE</div>
+  </header>
+
+  <!-- ホーム -->
+  <section id="homeScreen" class="screen">
+    <div class="card">
+
+      <h2>🎭 オンライン推理ゲーム</h2>
+
+      <input
+        id="nameInput"
+        maxlength="12"
+        placeholder="ニックネーム"
+        autocomplete="off"
+      >
+
+      <button id="createBtn" class="mainBtn">
+        🏠 部屋を作る
+      </button>
+
+      <div class="separator">または</div>
+
+      <div class="joinBox">
+
+        <input
+          id="roomInput"
+          maxlength="6"
+          placeholder="ルームコード"
+          autocomplete="off"
+        >
+
+        <button id="joinBtn">
+          参加
+        </button>
+
+      </div>
+
+      <p id="homeMessage" class="message"></p>
+
+    </div>
+  </section>
+
+
+  <!-- ロビー -->
+  <section id="lobbyScreen" class="screen hidden">
+
+    <div class="card">
+
+      <h2>👥 待機ルーム</h2>
+
+      <div class="roomCode">
+        <span>ルームコード</span>
+        <strong id="roomCode">------</strong>
+      </div>
+
+      <button id="copyBtn" class="copyBtn">
+        📋 コードをコピー
+      </button>
+
+      <p id="lobbyMessage" class="message">
+        友達を待っています……
+      </p>
+
+      <h3>参加者</h3>
+
+      <div id="playerList"></div>
+
+      <button id="startBtn" class="mainBtn hidden">
+        🎮 ゲーム開始
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- ゲーム -->
+  <section id="gameScreen" class="screen hidden">
+
+    <div class="card">
+
+      <div class="gameHeader">
+        <span id="roundText">ROUND 1</span>
+        <span id="turnText"></span>
+      </div>
+
+      <div class="storyBox">
+
+        <div class="label">CASE</div>
+
+        <h2 id="storyTitle">
+          事件
+        </h2>
+
+        <p id="storyText"></p>
+
+      </div>
+
+
+      <div class="secretBox">
+
+        <div class="label">SECRET</div>
+
+        <h3>🤫 あなたの秘密</h3>
+
+        <p id="secretText"></p>
+
+      </div>
+
+
+      <div id="actionArea"></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- 投票 -->
+  <section id="voteScreen" class="screen hidden">
+
+    <div class="card">
+
+      <h2>🗳️ 犯人投票</h2>
+
+      <p>
+        一番怪しいと思うプレイヤーに投票してください。
+      </p>
+
+      <div id="voteList"></div>
+
+      <p id="voteMessage" class="message"></p>
+
+    </div>
+
+  </section>
+
+
+  <!-- 結果 -->
+  <section id="resultScreen" class="screen hidden">
+
+    <div class="card">
+
+      <h2>🎬 結果発表</h2>
+
+      <div id="resultText"></div>
+
+      <button id="backHomeBtn" class="mainBtn">
+        🏠 ホームへ戻る
+      </button>
+
+    </div>
+
+  </section>
+
+</div>
+
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
