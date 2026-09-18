@@ -22,9 +22,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-/* =========================
-   キャラクター
-========================= */
+// ==============================
+// AI Worker
+// ==============================
+
+const AI_WORKER_URL =
+  "https://souioma-ai.genta-saitou0308.workers.dev/";
+
+// ==============================
+// キャラクター
+// ==============================
 
 const ages = [
   19, 21, 23, 25, 28, 31,
@@ -76,9 +83,9 @@ const hobbies = [
   "散歩"
 ];
 
-/* =========================
-   事件
-========================= */
+// ==============================
+// 事件
+// ==============================
 
 const cases = [
   {
@@ -123,16 +130,16 @@ const cases = [
   }
 ];
 
-/* =========================
-   暴露カード
-========================= */
+// ==============================
+// 暴露カード
+// ==============================
 
 const exposureCards = [
   "事件当日の深夜、あなたは地下室に向かっていた。",
   "あなたは被害者の部屋の鍵を持っていた。",
   "事件直前、あなたは被害者と口論していた。",
   "あなたの服から見覚えのない血痕が見つかった。",
-  "あなたは事件直後、一人で館の外へ出ようとしていた。",
+  "あなたは事件の直後、一人で館の外へ出ようとしていた。",
   "あなたのポケットから小型のナイフが見つかった。",
   "あなたは被害者から多額のお金を借りていた。",
   "あなたは事件当日の行動について嘘をついていた。",
@@ -157,38 +164,21 @@ const exposureCards = [
   "あなたは被害者から重要な手紙を受け取っていた。",
   "あなたは事件直後に手を洗っていた。",
   "あなたは館の構造を詳しく知っていた。",
-  "あなたは事件の翌朝、何かを探していた。",
-  "あなたは被害者が亡くなる少し前に、その部屋の近くにいた。",
-  "あなたの服のポケットから謎のメモが見つかった。",
-  "あなたは事件前日に被害者と二人きりで話していた。",
-  "あなたは誰にも言っていない秘密を被害者に知られていた。",
-  "事件当夜、あなたは一度だけ照明を消した。",
-  "あなたは事件現場の床に落ちていた物を拾った。",
-  "あなたは事件の直後、誰かと目を合わせていた。",
-  "あなたは被害者の机を勝手に調べていた。",
-  "あなたは事件前に館の使用人から何かを受け取っていた。",
-  "あなたは事件当夜、時計の時刻を確認していた。",
-  "あなたは事件現場にあったグラスに触れていた。",
-  "あなたは被害者の秘密の部屋の存在を知っていた。",
-  "あなたは事件後、自分の荷物を何度も確認していた。",
-  "あなたは被害者の手紙を一通だけ隠していた。",
-  "あなたは事件当夜、普段とは違う服を着ていた。",
-  "あなたは事件直後、地下室から戻ってきた。",
-  "あなたは被害者に対して強い不満を抱いていた。"
+  "あなたは事件の翌朝、何かを探していた。"
 ];
 
-/* =========================
-   状態
-========================= */
+// ==============================
+// 状態
+// ==============================
 
 let roomId = "";
 let myId = crypto.randomUUID();
 let myName = "";
 let unsubscribeRoom = null;
 
-/* =========================
-   DOM
-========================= */
+// ==============================
+// DOM
+// ==============================
 
 const homeScreen = document.getElementById("homeScreen");
 const lobbyScreen = document.getElementById("lobbyScreen");
@@ -222,9 +212,9 @@ const voteMessage = document.getElementById("voteMessage");
 const resultText = document.getElementById("resultText");
 const backHomeBtn = document.getElementById("backHomeBtn");
 
-/* =========================
-   共通
-========================= */
+// ==============================
+// 共通
+// ==============================
 
 function showScreen(screen) {
   [
@@ -233,9 +223,7 @@ function showScreen(screen) {
     gameScreen,
     voteScreen,
     resultScreen
-  ].forEach(screenElement => {
-    screenElement.classList.add("hidden");
-  });
+  ].forEach(s => s.classList.add("hidden"));
 
   screen.classList.remove("hidden");
 }
@@ -255,18 +243,9 @@ function shuffle(array) {
   return [...array].sort(() => Math.random() - 0.5);
 }
 
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-/* =========================
-   部屋作成
-========================= */
+// ==============================
+// 部屋作成
+// ==============================
 
 createBtn.addEventListener("click", async () => {
   myName = nameInput.value.trim();
@@ -279,14 +258,16 @@ createBtn.addEventListener("click", async () => {
 
   roomId = randomCode();
 
+  const player = {
+    name: myName,
+    joinedAt: Date.now()
+  };
+
   const roomData = {
     hostId: myId,
 
     players: {
-      [myId]: {
-        name: myName,
-        joinedAt: Date.now()
-      }
+      [myId]: player
     },
 
     status: "lobby",
@@ -303,9 +284,9 @@ createBtn.addEventListener("click", async () => {
   listenRoom();
 });
 
-/* =========================
-   部屋参加
-========================= */
+// ==============================
+// 部屋参加
+// ==============================
 
 joinBtn.addEventListener("click", async () => {
   myName = nameInput.value.trim();
@@ -323,8 +304,11 @@ joinBtn.addEventListener("click", async () => {
     return;
   }
 
+  const roomRef =
+    ref(db, `rooms/${roomId}`);
+
   const snapshot =
-    await get(ref(db, `rooms/${roomId}`));
+    await get(roomRef);
 
   if (!snapshot.exists()) {
     homeMessage.textContent =
@@ -334,12 +318,6 @@ joinBtn.addEventListener("click", async () => {
 
   const room = snapshot.val();
   const players = room.players || {};
-
-  if (room.status !== "lobby") {
-    homeMessage.textContent =
-      "このゲームはすでに始まっています。";
-    return;
-  }
 
   if (Object.keys(players).length >= 6) {
     homeMessage.textContent =
@@ -359,9 +337,9 @@ joinBtn.addEventListener("click", async () => {
   listenRoom();
 });
 
-/* =========================
-   ロビー
-========================= */
+// ==============================
+// ロビー
+// ==============================
 
 function enterLobby() {
   showScreen(lobbyScreen);
@@ -378,7 +356,6 @@ function listenRoom() {
 
   unsubscribeRoom =
     onValue(roomRef, snapshot => {
-
       if (!snapshot.exists()) {
         return;
       }
@@ -386,7 +363,6 @@ function listenRoom() {
       const room = snapshot.val();
 
       if (room.status === "lobby") {
-        showScreen(lobbyScreen);
         renderLobby(room);
         return;
       }
@@ -417,32 +393,31 @@ function renderLobby(room) {
   playerList.innerHTML = "";
 
   ids.forEach(id => {
-    const div = document.createElement("div");
+    const div =
+      document.createElement("div");
 
     div.className = "playerItem";
 
-    div.textContent =
-      players[id].name +
-      (id === room.hostId
+    const hostText =
+      id === room.hostId
         ? " 👑 館の主人"
-        : "");
+        : "";
+
+    div.textContent =
+      players[id].name + hostText;
 
     playerList.appendChild(div);
   });
 
   if (
     myId === room.hostId &&
-    ids.length >= 3 &&
-    ids.length <= 6
+    ids.length >= 3
   ) {
-
     startBtn.classList.remove("hidden");
 
     lobbyMessage.textContent =
       `${ids.length}人参加中。ゲームを開始できます。`;
-
   } else {
-
     startBtn.classList.add("hidden");
 
     lobbyMessage.textContent =
@@ -450,39 +425,29 @@ function renderLobby(room) {
   }
 }
 
-/* =========================
-   ゲーム開始
-========================= */
+// ==============================
+// ゲーム開始
+// ==============================
 
 startBtn.addEventListener("click", async () => {
-
-  const snapshot =
+  const roomSnapshot =
     await get(ref(db, `rooms/${roomId}`));
 
-  if (!snapshot.exists()) {
+  if (!roomSnapshot.exists()) {
     return;
   }
 
-  const room = snapshot.val();
+  const room = roomSnapshot.val();
+  const players = room.players || {};
+  const ids = Object.keys(players);
 
   if (room.hostId !== myId) {
     return;
   }
 
-  const players =
-    room.players || {};
-
-  const ids =
-    Object.keys(players);
-
   if (ids.length < 3 || ids.length > 6) {
     return;
   }
-
-  /*
-    3人 → 3ラウンド
-    4～6人 → 2ラウンド
-  */
 
   const maxRounds =
     ids.length === 3
@@ -492,15 +457,10 @@ startBtn.addEventListener("click", async () => {
   const selectedCase =
     randomItem(cases);
 
-  /*
-    全員に公開されるプロフィール
-  */
-
-  const characters = {};
+  const publicCharacters = {};
 
   ids.forEach(id => {
-
-    characters[id] = {
+    publicCharacters[id] = {
       name: players[id].name,
       age: randomItem(ages),
       job: randomItem(jobs),
@@ -509,33 +469,20 @@ startBtn.addEventListener("click", async () => {
     };
   });
 
-  /*
-    各プレイヤーに4枚の暴露カード
-  */
-
   const cards = {};
 
   ids.forEach(id => {
-
     cards[id] =
       shuffle(exposureCards).slice(0, 4);
   });
 
-  /*
-    重要：
-    ここでは犯人を決めない。
-    culpritIdは存在しない。
-  */
-
   const game = {
-
     round: 1,
-
     maxRounds,
 
     case: selectedCase,
 
-    characters,
+    characters: publicCharacters,
 
     cards,
 
@@ -543,13 +490,14 @@ startBtn.addEventListener("click", async () => {
 
     exposedThisRound: {},
 
-    votes: {},
+    selectorId: room.hostId,
 
     phase: "select",
 
-    /*
-      最終的にAIへ渡すための情報
-    */
+    votes: {},
+
+    // AI関連
+    aiStatus: "waiting",
 
     finalSuspectId: null,
 
@@ -565,14 +513,12 @@ startBtn.addEventListener("click", async () => {
   );
 });
 
-/* =========================
-   ゲーム画面
-========================= */
+// ==============================
+// ゲーム画面
+// ==============================
 
 function renderGame(room) {
-
-  const game =
-    room.game;
+  const game = room.game;
 
   roundText.textContent =
     `ROUND ${game.round} / ${game.maxRounds}`;
@@ -588,20 +534,18 @@ function renderGame(room) {
 
   actionArea.innerHTML = "";
 
-  /*
-    キャラクター
-  */
+  // ==============================
+  // キャラクター一覧
+  // ==============================
 
   const characterBox =
     document.createElement("div");
 
-  characterBox.className =
-    "storyBox";
+  characterBox.className = "storyBox";
 
-  characterBox.innerHTML = `
-    <div class="label">CHARACTERS</div>
-    <h2>👥 登場人物</h2>
-  `;
+  characterBox.innerHTML =
+    `<div class="label">CHARACTERS</div>
+     <h2>👥 登場人物</h2>`;
 
   Object.entries(game.characters)
     .forEach(([id, character]) => {
@@ -613,23 +557,13 @@ function renderGame(room) {
         "revealedCard";
 
       div.innerHTML = `
-        <h3>
-          ${escapeHtml(character.name)}
-        </h3>
+        <h3>${escapeHtml(character.name)}</h3>
 
         <p>
-          <strong>
-            ${character.age}歳
-          </strong>
-          <br>
-          職業：
-          ${escapeHtml(character.job)}
-          <br>
-          性格：
-          ${escapeHtml(character.personality)}
-          <br>
-          趣味：
-          ${escapeHtml(character.hobby)}
+          <strong>${character.age}歳</strong><br>
+          職業：${escapeHtml(character.job)}<br>
+          性格：${escapeHtml(character.personality)}<br>
+          趣味：${escapeHtml(character.hobby)}
         </p>
       `;
 
@@ -638,9 +572,9 @@ function renderGame(room) {
 
   actionArea.appendChild(characterBox);
 
-  /*
-    公開済み暴露カード
-  */
+  // ==============================
+  // 公開されたカード
+  // ==============================
 
   const revealed =
     game.revealedCards || {};
@@ -677,9 +611,9 @@ function renderGame(room) {
       });
     });
 
-  /*
-    館の主人による選択
-  */
+  // ==============================
+  // ホストの選択
+  // ==============================
 
   if (
     myId === room.hostId &&
@@ -690,16 +624,14 @@ function renderGame(room) {
       document.createElement("h3");
 
     title.textContent =
-      "次に暴露する人";
+      "次に暴露する人を選択";
 
     actionArea.appendChild(title);
 
     Object.entries(game.characters)
       .forEach(([id, character]) => {
 
-        if (
-          game.exposedThisRound?.[id]
-        ) {
+        if (game.exposedThisRound?.[id]) {
           return;
         }
 
@@ -725,18 +657,25 @@ function renderGame(room) {
     const wait =
       document.createElement("p");
 
-    wait.className =
-      "message";
+    wait.className = "message";
 
-    wait.textContent =
-      "👑 館の主人が次に暴露する人を選んでいます……";
+    if (game.phase === "select") {
+
+      wait.textContent =
+        "👑 館の主人が次に暴露する人を選んでいます……";
+
+    } else {
+
+      wait.textContent =
+        "Discordで自由に質問・追及・弁明してください。";
+    }
 
     actionArea.appendChild(wait);
   }
 
-  /*
-    全員暴露済みか確認
-  */
+  // ==============================
+  // 全員暴露済み
+  // ==============================
 
   const playerCount =
     Object.keys(game.characters).length;
@@ -757,10 +696,7 @@ function renderGame(room) {
     nextButton.className =
       "mainBtn";
 
-    if (
-      game.round <
-      game.maxRounds
-    ) {
+    if (game.round < game.maxRounds) {
 
       nextButton.textContent =
         "➡️ 次のラウンドへ";
@@ -781,40 +717,31 @@ function renderGame(room) {
       );
     }
 
-    actionArea.appendChild(
-      nextButton
-    );
+    actionArea.appendChild(nextButton);
   }
 }
 
-/* =========================
-   暴露
-========================= */
+// ==============================
+// 暴露
+// ==============================
 
 async function revealPlayer(targetId) {
 
   const snapshot =
-    await get(
-      ref(db, `rooms/${roomId}`)
-    );
+    await get(ref(db, `rooms/${roomId}`));
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room =
-    snapshot.val();
-
-  const game =
-    room.game;
+  const room = snapshot.val();
+  const game = room.game;
 
   if (room.hostId !== myId) {
     return;
   }
 
-  if (
-    game.exposedThisRound?.[targetId]
-  ) {
+  if (game.exposedThisRound?.[targetId]) {
     return;
   }
 
@@ -830,8 +757,7 @@ async function revealPlayer(targetId) {
 
   const available =
     targetCards.filter(
-      card =>
-        !alreadyRevealed.includes(card)
+      card => !alreadyRevealed.includes(card)
     );
 
   if (available.length === 0) {
@@ -859,76 +785,59 @@ async function revealPlayer(targetId) {
     ref(db, `rooms/${roomId}/game`),
     {
       revealedCards: newRevealed,
-
       exposedThisRound: newExposed,
-
-      /*
-        毎回、館の主人が次を選ぶ
-      */
-
       selectorId: room.hostId,
-
       phase: "select"
     }
   );
 }
 
-/* =========================
-   次のラウンド
-========================= */
+// ==============================
+// 次のラウンド
+// ==============================
 
 async function nextRound() {
 
   const snapshot =
-    await get(
-      ref(db, `rooms/${roomId}`)
-    );
+    await get(ref(db, `rooms/${roomId}`));
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room =
-    snapshot.val();
+  const room = snapshot.val();
 
   if (room.hostId !== myId) {
     return;
   }
 
-  const game =
-    room.game;
+  const game = room.game;
 
   await update(
     ref(db, `rooms/${roomId}/game`),
     {
       round: game.round + 1,
-
       exposedThisRound: {},
-
       selectorId: room.hostId,
-
       phase: "select"
     }
   );
 }
 
-/* =========================
-   投票開始
-========================= */
+// ==============================
+// 投票開始
+// ==============================
 
 async function startVote() {
 
   const snapshot =
-    await get(
-      ref(db, `rooms/${roomId}`)
-    );
+    await get(ref(db, `rooms/${roomId}`));
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room =
-    snapshot.val();
+  const room = snapshot.val();
 
   if (room.hostId !== myId) {
     return;
@@ -942,9 +851,9 @@ async function startVote() {
   );
 }
 
-/* =========================
-   投票
-========================= */
+// ==============================
+// 投票画面
+// ==============================
 
 function renderVote(room) {
 
@@ -959,13 +868,13 @@ function renderVote(room) {
   if (existingVote) {
 
     voteMessage.textContent =
-      "投票しました。全員の投票を待っています……";
+      "投票済みです。ほかのプレイヤーの投票を待っています……";
 
     return;
   }
 
   voteMessage.textContent =
-    "Discordで話し合い、犯人だと思う人物に投票してください。";
+    "Discordで話し合って、犯人だと思う人に投票してください。";
 
   Object.entries(players)
     .forEach(([id, player]) => {
@@ -992,29 +901,27 @@ function renderVote(room) {
     });
 }
 
+// ==============================
+// 投票
+// ==============================
+
 async function castVote(targetId) {
 
   const snapshot =
-    await get(
-      ref(db, `rooms/${roomId}`)
-    );
+    await get(ref(db, `rooms/${roomId}`));
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room =
-    snapshot.val();
+  const room = snapshot.val();
 
   if (room.game?.votes?.[myId]) {
     return;
   }
 
   await update(
-    ref(
-      db,
-      `rooms/${roomId}/game/votes`
-    ),
+    ref(db, `rooms/${roomId}/game/votes`),
     {
       [myId]: targetId
     }
@@ -1023,23 +930,20 @@ async function castVote(targetId) {
   await checkAllVotes();
 }
 
-/* =========================
-   全員投票確認
-========================= */
+// ==============================
+// 全員投票確認
+// ==============================
 
 async function checkAllVotes() {
 
   const snapshot =
-    await get(
-      ref(db, `rooms/${roomId}`)
-    );
+    await get(ref(db, `rooms/${roomId}`));
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room =
-    snapshot.val();
+  const room = snapshot.val();
 
   const players =
     room.players || {};
@@ -1047,90 +951,13 @@ async function checkAllVotes() {
   const votes =
     room.game?.votes || {};
 
-  if (
-    Object.keys(votes).length >=
-    Object.keys(players).length
-  ) {
+  const playerCount =
+    Object.keys(players).length;
 
-    const counts = {};
+  const voteCount =
+    Object.keys(votes).length;
 
-    Object.values(votes)
-      .forEach(targetId => {
-
-        counts[targetId] =
-          (counts[targetId] || 0) + 1;
-      });
-
-    const sorted =
-      Object.entries(counts)
-        .sort(
-          (a, b) =>
-            b[1] - a[1]
-        );
-
-    const highest =
-      sorted[0]?.[1] || 0;
-
-    const suspects =
-      sorted
-        .filter(
-          ([, count]) =>
-            count === highest
-        )
-        .map(
-          ([id]) => id
-        );
-
-    /*
-      ここで初めて
-      「犯人として選ばれた人物」
-      が決まる。
-
-      ゲーム開始時には
-      存在しなかった。
-    */
-
-    await update(
-      ref(db, `rooms/${roomId}/game`),
-      {
-        finalSuspectId:
-          suspects.length === 1
-            ? suspects[0]
-            : null,
-
-        finalSuspects:
-          suspects,
-
-        voteCounts:
-          counts,
-
-        phase: "ending",
-
-        /*
-          AIに渡す情報を
-          まとめて保存
-        */
-
-        aiInput: {
-          case:
-            room.game.case,
-
-          characters:
-            room.game.characters,
-
-          revealedCards:
-            room.game.revealedCards || {},
-
-          votes,
-
-          voteCounts:
-            counts,
-
-          selectedSuspects:
-            suspects
-        }
-      }
-    );
+  if (voteCount >= playerCount) {
 
     await update(
       ref(db, `rooms/${roomId}`),
@@ -1141,100 +968,137 @@ async function checkAllVotes() {
   }
 }
 
-/* =========================
-   結果
-========================= */
+// ==============================
+// AI用データ作成
+// ==============================
+
+function calculateVoteCounts(votes) {
+
+  const counts = {};
+
+  Object.values(votes || {})
+    .forEach(targetId => {
+
+      counts[targetId] =
+        (counts[targetId] || 0) + 1;
+    });
+
+  return counts;
+}
+
+function getHighestVotedIds(voteCounts) {
+
+  const entries =
+    Object.entries(voteCounts);
+
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const highest =
+    Math.max(
+      ...entries.map(([, count]) => count)
+    );
+
+  return entries
+    .filter(([, count]) => count === highest)
+    .map(([id]) => id);
+}
+
+// ==============================
+// 結果画面
+// ==============================
 
 function renderResult(room) {
-
-  const game =
-    room.game;
 
   const players =
     room.players || {};
 
-  const suspects =
-    game.finalSuspects || [];
+  const game =
+    room.game || {};
 
-  if (suspects.length === 0) {
+  const votes =
+    game.votes || {};
+
+  const counts =
+    calculateVoteCounts(votes);
+
+  const suspectIds =
+    getHighestVotedIds(counts);
+
+  if (suspectIds.length === 0) {
+
+    resultText.innerHTML =
+      "<p>投票結果がありません。</p>";
+
+    return;
+  }
+
+  const highest =
+    Math.max(
+      ...Object.values(counts)
+    );
+
+  const suspectNames =
+    suspectIds.map(
+      id => players[id]?.name || "不明"
+    );
+
+  // ==============================
+  // AI生成済み
+  // ==============================
+
+  if (game.finalEnding) {
 
     resultText.innerHTML = `
       <div class="storyBox">
         <h2>🗳️ 投票結果</h2>
 
         <p>
-          投票が割れました。
+          最も票を集めた人物：
+          <strong>
+            ${suspectNames
+              .map(escapeHtml)
+              .join("、")}
+          </strong>
         </p>
 
         <p>
-          誰も犯人として確定しませんでした。
+          得票数：${highest}票
         </p>
       </div>
 
       <div class="storyBox">
-        <h2>🤖 AIエンディング準備完了</h2>
+        <h2>🎬 事件の真相</h2>
 
-        <p>
-          この結果とゲーム中の暴露情報を
-          AIに渡してエンディングを生成できます。
-        </p>
+        <div class="aiEnding">
+          ${escapeHtml(game.finalEnding)
+            .replace(/\n/g, "<br>")}
+        </div>
       </div>
     `;
 
     return;
   }
 
-  const suspectNames =
-    suspects.map(
-      id =>
-        players[id]?.name ||
-        "不明"
-    );
+  // ==============================
+  // AI生成中
+  // ==============================
 
-  const voteCounts =
-    game.voteCounts || {};
+  let statusMessage =
+    "🤖 AIが事件の真相を作っています……";
 
-  let voteHtml = "";
-
-  Object.entries(voteCounts)
-    .forEach(([id, count]) => {
-
-      const name =
-        players[id]?.name ||
-        "不明";
-
-      voteHtml += `
-        <p>
-          ${escapeHtml(name)}
-          ：${count}票
-        </p>
-      `;
-    });
+  if (game.aiStatus === "error") {
+    statusMessage =
+      "⚠️ AIによる真相生成に失敗しました。";
+  }
 
   resultText.innerHTML = `
     <div class="storyBox">
-
-      <div class="label">
-        FINAL VOTE
-      </div>
-
       <h2>🗳️ 投票結果</h2>
 
-      ${voteHtml}
-
-    </div>
-
-    <div class="storyBox">
-
-      <div class="label">
-        SUSPECT
-      </div>
-
-      <h2>
-        🔎 犯人として選ばれた人物
-      </h2>
-
       <p>
+        最も票を集めた人物：
         <strong>
           ${suspectNames
             .map(escapeHtml)
@@ -1242,36 +1106,200 @@ function renderResult(room) {
         </strong>
       </p>
 
+      <p>
+        得票数：${highest}票
+      </p>
     </div>
 
     <div class="storyBox">
-
-      <div class="label">
-        AI ENDING
-      </div>
-
-      <h2>
-        🤖 事件の真相
-      </h2>
+      <h2>🎬 事件の真相</h2>
 
       <p>
-        現在はAI接続前です。
+        この時点では、ゲーム開始時から決められた
+        「真犯人」は存在しません。
       </p>
 
       <p>
-        次の段階で、事件・人物設定・
-        公開された暴露カード・投票結果を
-        AIに送って、この人物が犯人だった
-        というエンディングを生成します。
+        投票で選ばれた人物をもとに、
+        公開された情報からAIが事件の真相を作ります。
       </p>
 
+      <p>
+        ${statusMessage}
+      </p>
     </div>
   `;
+
+  // ホストだけAI生成を開始
+  if (
+    myId === room.hostId &&
+    game.aiStatus !== "generating" &&
+    game.aiStatus !== "done"
+  ) {
+
+    generateAIEnding(
+      room,
+      suspectIds,
+      counts
+    );
+  }
 }
 
-/* =========================
-   コードコピー
-========================= */
+// ==============================
+// AIエンディング生成
+// ==============================
+
+async function generateAIEnding(
+  room,
+  suspectIds,
+  voteCounts
+) {
+
+  // 二重生成防止
+  const currentSnapshot =
+    await get(ref(db, `rooms/${roomId}`));
+
+  if (!currentSnapshot.exists()) {
+    return;
+  }
+
+  const currentRoom =
+    currentSnapshot.val();
+
+  const currentGame =
+    currentRoom.game || {};
+
+  if (
+    currentGame.aiStatus === "generating" ||
+    currentGame.finalEnding
+  ) {
+    return;
+  }
+
+  await update(
+    ref(db, `rooms/${roomId}/game`),
+    {
+      aiStatus: "generating"
+    }
+  );
+
+  try {
+
+    const selectedSuspects =
+      suspectIds.map(id => ({
+        id,
+
+        name:
+          room.players?.[id]?.name ||
+          "不明",
+
+        character:
+          room.game?.characters?.[id] ||
+          null
+      }));
+
+    const payload = {
+
+      case:
+        room.game?.case || null,
+
+      characters:
+        room.game?.characters || {},
+
+      revealedCards:
+        room.game?.revealedCards || {},
+
+      votes:
+        room.game?.votes || {},
+
+      voteCounts,
+
+      selectedSuspects
+    };
+
+    const response =
+      await fetch(
+        AI_WORKER_URL,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify(payload)
+        }
+      );
+
+    if (!response.ok) {
+
+      throw new Error(
+        `AI Worker error: ${response.status}`
+      );
+    }
+
+    const data =
+      await response.json();
+
+    if (
+      !data.success ||
+      !data.ending
+    ) {
+
+      throw new Error(
+        data.error ||
+        "AIから真相が返ってきませんでした。"
+      );
+    }
+
+    await update(
+      ref(db, `rooms/${roomId}/game`),
+      {
+        finalEnding: data.ending,
+        finalSuspectId:
+          suspectIds.length === 1
+            ? suspectIds[0]
+            : null,
+        aiStatus: "done",
+        aiError: null
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "AI ending error:",
+      error
+    );
+
+    await update(
+      ref(db, `rooms/${roomId}/game`),
+      {
+        aiStatus: "error",
+        aiError:
+          error?.message ||
+          "AI生成に失敗しました。"
+      }
+    );
+  }
+}
+
+// ==============================
+// ホームへ
+// ==============================
+
+backHomeBtn.addEventListener(
+  "click",
+  () => {
+    location.reload();
+  }
+);
+
+// ==============================
+// ルームコードコピー
+// ==============================
 
 copyBtn.addEventListener(
   "click",
@@ -1279,8 +1307,9 @@ copyBtn.addEventListener(
 
     try {
 
-      await navigator.clipboard
-        .writeText(roomId);
+      await navigator.clipboard.writeText(
+        roomId
+      );
 
       copyBtn.textContent =
         "✅ コピーしました！";
@@ -1300,13 +1329,16 @@ copyBtn.addEventListener(
   }
 );
 
-/* =========================
-   ホームへ
-========================= */
+// ==============================
+// XSS対策
+// ==============================
 
-backHomeBtn.addEventListener(
-  "click",
-  () => {
-    location.reload();
-  }
-);
+function escapeHtml(text) {
+
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
