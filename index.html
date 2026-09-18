@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>そういうお前はどうなんだ？ ONLINE</title>
+
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -11,16 +13,42 @@
 
 <div class="app">
 
+  <!-- =========================
+       ヘッダー
+  ========================== -->
+
   <header>
-    <h1>そういうお前は<br>どうなんだ？</h1>
-    <div class="online">● ONLINE</div>
+    <h1>
+      そういうお前は<br>
+      どうなんだ？
+    </h1>
+
+    <div class="online">
+      ● ONLINE
+    </div>
   </header>
 
-  <!-- ホーム -->
+
+  <!-- =========================
+       ホーム
+  ========================== -->
+
   <section id="homeScreen" class="screen">
+
     <div class="card">
 
-      <h2>🎭 オンライン推理ゲーム</h2>
+      <div class="gameIcon">
+        🎭
+      </div>
+
+      <h2>
+        オンライン推理ゲーム
+      </h2>
+
+      <p class="description">
+        Discordなどのボイスチャットで話し合いながら、
+        館で起きた事件の犯人を推理しよう。
+      </p>
 
       <input
         id="nameInput"
@@ -29,13 +57,19 @@
         autocomplete="off"
       >
 
-      <button id="createBtn" class="mainBtn">
+      <button
+        id="createBtn"
+        class="mainBtn"
+      >
         🏠 部屋を作る
       </button>
 
-      <div class="separator">または</div>
+      <div class="separator">
+        または
+      </div>
 
       <div class="joinBox">
+
         <input
           id="roomInput"
           maxlength="6"
@@ -46,59 +80,166 @@
         <button id="joinBtn">
           参加
         </button>
+
       </div>
 
-      <p id="homeMessage" class="message"></p>
+      <p
+        id="homeMessage"
+        class="message"
+      ></p>
+
+      <div class="ruleBox">
+
+        <h3>🎮 ゲームの流れ</h3>
+
+        <p>
+          ① 3～6人で部屋を作る
+        </p>
+
+        <p>
+          ② それぞれに人物設定が決まる
+        </p>
+
+        <p>
+          ③ 館の主人が暴露する人物を選ぶ
+        </p>
+
+        <p>
+          ④ Discordで質問・推理・弁明
+        </p>
+
+        <p>
+          ⑤ 最後に全員で犯人投票
+        </p>
+
+        <p>
+          ⑥ 投票された人物をもとにAIが真相を生成
+        </p>
+
+      </div>
 
     </div>
+
   </section>
 
 
-  <!-- ロビー -->
-  <section id="lobbyScreen" class="screen hidden">
+  <!-- =========================
+       ロビー
+  ========================== -->
+
+  <section
+    id="lobbyScreen"
+    class="screen hidden"
+  >
+
     <div class="card">
 
-      <h2>👥 待機ルーム</h2>
+      <h2>
+        👥 待機ルーム
+      </h2>
+
+      <p class="description">
+        友達にルームコードを送って参加してもらおう。
+      </p>
 
       <div class="roomCode">
-        <span>ルームコード</span>
-        <strong id="roomCode">------</strong>
+
+        <span>
+          ルームコード
+        </span>
+
+        <strong id="roomCode">
+          ------
+        </strong>
+
       </div>
 
-      <button id="copyBtn" class="copyBtn">
+      <button
+        id="copyBtn"
+        class="copyBtn"
+      >
         📋 コードをコピー
       </button>
 
-      <p id="lobbyMessage" class="message">
+      <p
+        id="lobbyMessage"
+        class="message"
+      >
         友達を待っています……
       </p>
 
-      <h3>参加者</h3>
+      <h3>
+        参加者
+      </h3>
 
       <div id="playerList"></div>
 
-      <button id="startBtn" class="mainBtn hidden">
+      <button
+        id="startBtn"
+        class="mainBtn hidden"
+      >
         🎮 ゲーム開始
       </button>
 
+      <div class="hostNotice">
+        👑 館の主人は部屋を作った人です。
+      </div>
+
     </div>
+
   </section>
 
 
-  <!-- ゲーム -->
-  <section id="gameScreen" class="screen hidden">
+  <!-- =========================
+       ゲーム
+  ========================== -->
+
+  <section
+    id="gameScreen"
+    class="screen hidden"
+  >
+
     <div class="card">
 
+      <!-- ラウンド -->
+
       <div class="gameHeader">
-        <span id="roundText">ROUND 1</span>
+
+        <span id="roundText">
+          ROUND 1
+        </span>
+
         <span id="turnText"></span>
+
       </div>
 
 
-      <!-- 事件 -->
+      <!-- Discord案内 -->
+
+      <div class="voiceNotice">
+
+        🎙️
+        <strong>
+          Discordで話し合おう！
+        </strong>
+
+        <p>
+          このサイトには発言機能はありません。
+          質問・追及・弁明はボイスチャットで行います。
+        </p>
+
+      </div>
+
+
+      <!-- =========================
+           事件
+      ========================== -->
+
       <div class="storyBox">
 
-        <div class="label">CASE</div>
+        <div class="label">
+          CASE
+        </div>
 
         <h2 id="storyTitle">
           事件
@@ -109,58 +250,144 @@
       </div>
 
 
-      <!-- 暴露 -->
+      <!-- =========================
+           登場人物
+      ========================== -->
+
       <div class="storyBox">
 
-        <div class="label">EXPOSURE</div>
+        <div class="label">
+          CHARACTERS
+        </div>
 
-        <h2>🎴 暴露カード</h2>
+        <h2>
+          👥 登場人物
+        </h2>
+
+        <p class="smallText">
+          全員が確認できます。
+        </p>
+
+        <!-- app.jsがここへキャラクター情報を入れる -->
+
+      </div>
+
+
+      <!-- =========================
+           暴露カード
+      ========================== -->
+
+      <div class="storyBox">
+
+        <div class="label">
+          EXPOSURE
+        </div>
+
+        <h2>
+          🎴 暴露カード
+        </h2>
+
+        <p class="smallText">
+          館の主人が選んだ人物の情報が公開されます。
+        </p>
 
         <div id="actionArea"></div>
 
       </div>
 
     </div>
+
   </section>
 
 
-  <!-- 投票 -->
-  <section id="voteScreen" class="screen hidden">
+  <!-- =========================
+       投票
+  ========================== -->
+
+  <section
+    id="voteScreen"
+    class="screen hidden"
+  >
+
     <div class="card">
 
-      <h2>🗳️ 犯人投票</h2>
+      <div class="voteIcon">
+        🗳️
+      </div>
 
-      <p>
-        一番怪しいと思うプレイヤーに投票してください。
+      <h2>
+        最終投票
+      </h2>
+
+      <p class="description">
+        Discordで最後の話し合いをしてください。
       </p>
+
+      <div class="warningBox">
+
+        ⚠️
+        <strong>
+          ここで犯人を決めます
+        </strong>
+
+        <p>
+          ゲーム開始時には犯人は決まっていません。
+          全員の推理を聞いたあと、怪しい人物に投票してください。
+        </p>
+
+      </div>
 
       <div id="voteList"></div>
 
-      <p id="voteMessage" class="message"></p>
+      <p
+        id="voteMessage"
+        class="message"
+      ></p>
 
     </div>
+
   </section>
 
 
-  <!-- 結果 -->
-  <section id="resultScreen" class="screen hidden">
+  <!-- =========================
+       結果
+  ========================== -->
+
+  <section
+    id="resultScreen"
+    class="screen hidden"
+  >
+
     <div class="card">
 
-      <h2>🎬 結果発表</h2>
+      <div class="resultIcon">
+        🎬
+      </div>
+
+      <h2>
+        結果発表
+      </h2>
 
       <div id="resultText"></div>
 
-      <button id="backHomeBtn" class="mainBtn">
+      <button
+        id="backHomeBtn"
+        class="mainBtn"
+      >
         🏠 ホームへ戻る
       </button>
 
     </div>
+
   </section>
 
 </div>
 
 
-<script type="module" src="app.js"></script>
+<script
+  type="module"
+  src="app.js"
+></script>
 
 </body>
 </html>
