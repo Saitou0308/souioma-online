@@ -22,9 +22,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// ==============================
-// キャラクター
-// ==============================
+/* =========================
+   キャラクター
+========================= */
 
 const ages = [
   19, 21, 23, 25, 28, 31,
@@ -76,9 +76,9 @@ const hobbies = [
   "散歩"
 ];
 
-// ==============================
-// 事件
-// ==============================
+/* =========================
+   事件
+========================= */
 
 const cases = [
   {
@@ -123,16 +123,16 @@ const cases = [
   }
 ];
 
-// ==============================
-// 暴露カード
-// ==============================
+/* =========================
+   暴露カード
+========================= */
 
 const exposureCards = [
   "事件当日の深夜、あなたは地下室に向かっていた。",
   "あなたは被害者の部屋の鍵を持っていた。",
   "事件直前、あなたは被害者と口論していた。",
   "あなたの服から見覚えのない血痕が見つかった。",
-  "あなたは事件の直後、一人で館の外へ出ようとしていた。",
+  "あなたは事件直後、一人で館の外へ出ようとしていた。",
   "あなたのポケットから小型のナイフが見つかった。",
   "あなたは被害者から多額のお金を借りていた。",
   "あなたは事件当日の行動について嘘をついていた。",
@@ -157,21 +157,38 @@ const exposureCards = [
   "あなたは被害者から重要な手紙を受け取っていた。",
   "あなたは事件直後に手を洗っていた。",
   "あなたは館の構造を詳しく知っていた。",
-  "あなたは事件の翌朝、何かを探していた。"
+  "あなたは事件の翌朝、何かを探していた。",
+  "あなたは被害者が亡くなる少し前に、その部屋の近くにいた。",
+  "あなたの服のポケットから謎のメモが見つかった。",
+  "あなたは事件前日に被害者と二人きりで話していた。",
+  "あなたは誰にも言っていない秘密を被害者に知られていた。",
+  "事件当夜、あなたは一度だけ照明を消した。",
+  "あなたは事件現場の床に落ちていた物を拾った。",
+  "あなたは事件の直後、誰かと目を合わせていた。",
+  "あなたは被害者の机を勝手に調べていた。",
+  "あなたは事件前に館の使用人から何かを受け取っていた。",
+  "あなたは事件当夜、時計の時刻を確認していた。",
+  "あなたは事件現場にあったグラスに触れていた。",
+  "あなたは被害者の秘密の部屋の存在を知っていた。",
+  "あなたは事件後、自分の荷物を何度も確認していた。",
+  "あなたは被害者の手紙を一通だけ隠していた。",
+  "あなたは事件当夜、普段とは違う服を着ていた。",
+  "あなたは事件直後、地下室から戻ってきた。",
+  "あなたは被害者に対して強い不満を抱いていた。"
 ];
 
-// ==============================
-// 状態
-// ==============================
+/* =========================
+   状態
+========================= */
 
 let roomId = "";
 let myId = crypto.randomUUID();
 let myName = "";
 let unsubscribeRoom = null;
 
-// ==============================
-// DOM
-// ==============================
+/* =========================
+   DOM
+========================= */
 
 const homeScreen = document.getElementById("homeScreen");
 const lobbyScreen = document.getElementById("lobbyScreen");
@@ -205,13 +222,20 @@ const voteMessage = document.getElementById("voteMessage");
 const resultText = document.getElementById("resultText");
 const backHomeBtn = document.getElementById("backHomeBtn");
 
-// ==============================
-// 共通
-// ==============================
+/* =========================
+   共通
+========================= */
 
 function showScreen(screen) {
-  [homeScreen, lobbyScreen, gameScreen, voteScreen, resultScreen]
-    .forEach(s => s.classList.add("hidden"));
+  [
+    homeScreen,
+    lobbyScreen,
+    gameScreen,
+    voteScreen,
+    resultScreen
+  ].forEach(screenElement => {
+    screenElement.classList.add("hidden");
+  });
 
   screen.classList.remove("hidden");
 }
@@ -231,30 +255,38 @@ function shuffle(array) {
   return [...array].sort(() => Math.random() - 0.5);
 }
 
-// ==============================
-// 部屋作成
-// ==============================
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/* =========================
+   部屋作成
+========================= */
 
 createBtn.addEventListener("click", async () => {
   myName = nameInput.value.trim();
 
   if (!myName) {
-    homeMessage.textContent = "ニックネームを入力してください。";
+    homeMessage.textContent =
+      "ニックネームを入力してください。";
     return;
   }
 
   roomId = randomCode();
 
-  const player = {
-    name: myName,
-    joinedAt: Date.now()
-  };
-
   const roomData = {
     hostId: myId,
 
     players: {
-      [myId]: player
+      [myId]: {
+        name: myName,
+        joinedAt: Date.now()
+      }
     },
 
     status: "lobby",
@@ -262,58 +294,74 @@ createBtn.addEventListener("click", async () => {
     game: null
   };
 
-  await set(ref(db, `rooms/${roomId}`), roomData);
+  await set(
+    ref(db, `rooms/${roomId}`),
+    roomData
+  );
 
   enterLobby();
   listenRoom();
 });
 
-// ==============================
-// 部屋参加
-// ==============================
+/* =========================
+   部屋参加
+========================= */
 
 joinBtn.addEventListener("click", async () => {
   myName = nameInput.value.trim();
   roomId = roomInput.value.trim().toUpperCase();
 
   if (!myName) {
-    homeMessage.textContent = "ニックネームを入力してください。";
+    homeMessage.textContent =
+      "ニックネームを入力してください。";
     return;
   }
 
   if (!roomId) {
-    homeMessage.textContent = "ルームコードを入力してください。";
+    homeMessage.textContent =
+      "ルームコードを入力してください。";
     return;
   }
 
-  const roomRef = ref(db, `rooms/${roomId}`);
-  const snapshot = await get(roomRef);
+  const snapshot =
+    await get(ref(db, `rooms/${roomId}`));
 
   if (!snapshot.exists()) {
-    homeMessage.textContent = "そのルームは存在しません。";
+    homeMessage.textContent =
+      "そのルームは存在しません。";
     return;
   }
 
   const room = snapshot.val();
   const players = room.players || {};
 
-  if (Object.keys(players).length >= 6) {
-    homeMessage.textContent = "この部屋は満員です。";
+  if (room.status !== "lobby") {
+    homeMessage.textContent =
+      "このゲームはすでに始まっています。";
     return;
   }
 
-  await update(ref(db, `rooms/${roomId}/players/${myId}`), {
-    name: myName,
-    joinedAt: Date.now()
-  });
+  if (Object.keys(players).length >= 6) {
+    homeMessage.textContent =
+      "この部屋は満員です。";
+    return;
+  }
+
+  await update(
+    ref(db, `rooms/${roomId}/players/${myId}`),
+    {
+      name: myName,
+      joinedAt: Date.now()
+    }
+  );
 
   enterLobby();
   listenRoom();
 });
 
-// ==============================
-// ロビー
-// ==============================
+/* =========================
+   ロビー
+========================= */
 
 function enterLobby() {
   showScreen(lobbyScreen);
@@ -325,37 +373,41 @@ function listenRoom() {
     unsubscribeRoom();
   }
 
-  const roomRef = ref(db, `rooms/${roomId}`);
+  const roomRef =
+    ref(db, `rooms/${roomId}`);
 
-  unsubscribeRoom = onValue(roomRef, snapshot => {
-    if (!snapshot.exists()) {
-      return;
-    }
+  unsubscribeRoom =
+    onValue(roomRef, snapshot => {
 
-    const room = snapshot.val();
+      if (!snapshot.exists()) {
+        return;
+      }
 
-    if (room.status === "lobby") {
-      renderLobby(room);
-      return;
-    }
+      const room = snapshot.val();
 
-    if (room.status === "playing") {
-      showScreen(gameScreen);
-      renderGame(room);
-      return;
-    }
+      if (room.status === "lobby") {
+        showScreen(lobbyScreen);
+        renderLobby(room);
+        return;
+      }
 
-    if (room.status === "vote") {
-      showScreen(voteScreen);
-      renderVote(room);
-      return;
-    }
+      if (room.status === "playing") {
+        showScreen(gameScreen);
+        renderGame(room);
+        return;
+      }
 
-    if (room.status === "result") {
-      showScreen(resultScreen);
-      renderResult(room);
-    }
-  });
+      if (room.status === "vote") {
+        showScreen(voteScreen);
+        renderVote(room);
+        return;
+      }
+
+      if (room.status === "result") {
+        showScreen(resultScreen);
+        renderResult(room);
+      }
+    });
 }
 
 function renderLobby(room) {
@@ -366,64 +418,89 @@ function renderLobby(room) {
 
   ids.forEach(id => {
     const div = document.createElement("div");
+
     div.className = "playerItem";
 
-    const hostText =
-      id === room.hostId
-        ? " 👑 館の主人"
-        : "";
-
     div.textContent =
-      players[id].name + hostText;
+      players[id].name +
+      (id === room.hostId
+        ? " 👑 館の主人"
+        : "");
 
     playerList.appendChild(div);
   });
 
-  if (myId === room.hostId && ids.length >= 3) {
+  if (
+    myId === room.hostId &&
+    ids.length >= 3 &&
+    ids.length <= 6
+  ) {
+
     startBtn.classList.remove("hidden");
+
     lobbyMessage.textContent =
       `${ids.length}人参加中。ゲームを開始できます。`;
+
   } else {
+
     startBtn.classList.add("hidden");
+
     lobbyMessage.textContent =
       `現在 ${ids.length}人。3～6人でゲーム開始できます。`;
   }
 }
 
-// ==============================
-// ゲーム開始
-// ==============================
+/* =========================
+   ゲーム開始
+========================= */
 
 startBtn.addEventListener("click", async () => {
-  const roomSnapshot = await get(ref(db, `rooms/${roomId}`));
 
-  if (!roomSnapshot.exists()) {
+  const snapshot =
+    await get(ref(db, `rooms/${roomId}`));
+
+  if (!snapshot.exists()) {
     return;
   }
 
-  const room = roomSnapshot.val();
-  const players = room.players || {};
-  const ids = Object.keys(players);
+  const room = snapshot.val();
 
   if (room.hostId !== myId) {
     return;
   }
 
+  const players =
+    room.players || {};
+
+  const ids =
+    Object.keys(players);
+
   if (ids.length < 3 || ids.length > 6) {
     return;
   }
+
+  /*
+    3人 → 3ラウンド
+    4～6人 → 2ラウンド
+  */
 
   const maxRounds =
     ids.length === 3
       ? 3
       : 2;
 
-  const selectedCase = randomItem(cases);
+  const selectedCase =
+    randomItem(cases);
 
-  const publicCharacters = {};
+  /*
+    全員に公開されるプロフィール
+  */
+
+  const characters = {};
 
   ids.forEach(id => {
-    publicCharacters[id] = {
+
+    characters[id] = {
       name: players[id].name,
       age: randomItem(ages),
       job: randomItem(jobs),
@@ -432,20 +509,33 @@ startBtn.addEventListener("click", async () => {
     };
   });
 
-  // 各プレイヤーの暴露カード
+  /*
+    各プレイヤーに4枚の暴露カード
+  */
+
   const cards = {};
 
   ids.forEach(id => {
-    cards[id] = shuffle(exposureCards).slice(0, 4);
+
+    cards[id] =
+      shuffle(exposureCards).slice(0, 4);
   });
 
+  /*
+    重要：
+    ここでは犯人を決めない。
+    culpritIdは存在しない。
+  */
+
   const game = {
+
     round: 1,
+
     maxRounds,
 
     case: selectedCase,
 
-    characters: publicCharacters,
+    characters,
 
     cards,
 
@@ -453,25 +543,36 @@ startBtn.addEventListener("click", async () => {
 
     exposedThisRound: {},
 
-    selectorId: room.hostId,
+    votes: {},
 
     phase: "select",
 
-    votes: {}
+    /*
+      最終的にAIへ渡すための情報
+    */
+
+    finalSuspectId: null,
+
+    finalEnding: null
   };
 
-  await update(ref(db, `rooms/${roomId}`), {
-    status: "playing",
-    game
-  });
+  await update(
+    ref(db, `rooms/${roomId}`),
+    {
+      status: "playing",
+      game
+    }
+  );
 });
 
-// ==============================
-// ゲーム画面
-// ==============================
+/* =========================
+   ゲーム画面
+========================= */
 
 function renderGame(room) {
-  const game = room.game;
+
+  const game =
+    room.game;
 
   roundText.textContent =
     `ROUND ${game.round} / ${game.maxRounds}`;
@@ -487,151 +588,233 @@ function renderGame(room) {
 
   actionArea.innerHTML = "";
 
-  // キャラクター一覧
-  const characterBox = document.createElement("div");
-  characterBox.className = "storyBox";
+  /*
+    キャラクター
+  */
 
-  characterBox.innerHTML =
-    `<div class="label">CHARACTERS</div>
-     <h2>👥 登場人物</h2>`;
+  const characterBox =
+    document.createElement("div");
 
-  Object.entries(game.characters).forEach(([id, character]) => {
+  characterBox.className =
+    "storyBox";
 
-    const div = document.createElement("div");
-    div.className = "revealedCard";
+  characterBox.innerHTML = `
+    <div class="label">CHARACTERS</div>
+    <h2>👥 登場人物</h2>
+  `;
 
-    div.innerHTML = `
-      <h3>${escapeHtml(character.name)}</h3>
-      <p>
-        <strong>${character.age}歳</strong><br>
-        職業：${escapeHtml(character.job)}<br>
-        性格：${escapeHtml(character.personality)}<br>
-        趣味：${escapeHtml(character.hobby)}
-      </p>
-    `;
+  Object.entries(game.characters)
+    .forEach(([id, character]) => {
 
-    characterBox.appendChild(div);
-  });
+      const div =
+        document.createElement("div");
+
+      div.className =
+        "revealedCard";
+
+      div.innerHTML = `
+        <h3>
+          ${escapeHtml(character.name)}
+        </h3>
+
+        <p>
+          <strong>
+            ${character.age}歳
+          </strong>
+          <br>
+          職業：
+          ${escapeHtml(character.job)}
+          <br>
+          性格：
+          ${escapeHtml(character.personality)}
+          <br>
+          趣味：
+          ${escapeHtml(character.hobby)}
+        </p>
+      `;
+
+      characterBox.appendChild(div);
+    });
 
   actionArea.appendChild(characterBox);
 
-  // 今まで公開されたカード
-  const revealed = game.revealedCards || {};
+  /*
+    公開済み暴露カード
+  */
 
-  Object.entries(revealed).forEach(([id, cards]) => {
+  const revealed =
+    game.revealedCards || {};
 
-    const character = game.characters[id];
+  Object.entries(revealed)
+    .forEach(([id, cards]) => {
 
-    if (!character) return;
+      const character =
+        game.characters[id];
 
-    cards.forEach(card => {
-
-      const div = document.createElement("div");
-      div.className = "revealedCard";
-
-      div.innerHTML = `
-        <h3>🎴 ${escapeHtml(character.name)}の暴露</h3>
-        <p>${escapeHtml(card)}</p>
-      `;
-
-      actionArea.appendChild(div);
-    });
-  });
-
-  // ホストだけ選択できる
-  if (myId === room.hostId && game.phase === "select") {
-
-    const title = document.createElement("h3");
-    title.textContent = "次に暴露する人を選択";
-    actionArea.appendChild(title);
-
-    Object.entries(game.characters).forEach(([id, character]) => {
-
-      if (game.exposedThisRound?.[id]) {
+      if (!character) {
         return;
       }
 
-      const button = document.createElement("button");
-      button.className = "mainBtn";
-      button.textContent =
-        `🎴 ${character.name}を暴露`;
+      cards.forEach(card => {
 
-      button.addEventListener("click", () => {
-        revealPlayer(id);
+        const div =
+          document.createElement("div");
+
+        div.className =
+          "revealedCard";
+
+        div.innerHTML = `
+          <h3>
+            🎴 ${escapeHtml(character.name)}の暴露
+          </h3>
+
+          <p>
+            ${escapeHtml(card)}
+          </p>
+        `;
+
+        actionArea.appendChild(div);
       });
-
-      actionArea.appendChild(button);
     });
+
+  /*
+    館の主人による選択
+  */
+
+  if (
+    myId === room.hostId &&
+    game.phase === "select"
+  ) {
+
+    const title =
+      document.createElement("h3");
+
+    title.textContent =
+      "次に暴露する人";
+
+    actionArea.appendChild(title);
+
+    Object.entries(game.characters)
+      .forEach(([id, character]) => {
+
+        if (
+          game.exposedThisRound?.[id]
+        ) {
+          return;
+        }
+
+        const button =
+          document.createElement("button");
+
+        button.className =
+          "mainBtn";
+
+        button.textContent =
+          `🎴 ${character.name}を暴露`;
+
+        button.addEventListener(
+          "click",
+          () => revealPlayer(id)
+        );
+
+        actionArea.appendChild(button);
+      });
 
   } else {
 
-    const wait = document.createElement("p");
-    wait.className = "message";
+    const wait =
+      document.createElement("p");
 
-    if (game.phase === "select") {
-      wait.textContent =
-        "👑 館の主人が次に暴露する人を選んでいます……";
-    } else {
-      wait.textContent =
-        "Discordで自由に質問・追及・弁明してください。";
-    }
+    wait.className =
+      "message";
+
+    wait.textContent =
+      "👑 館の主人が次に暴露する人を選んでいます……";
 
     actionArea.appendChild(wait);
   }
 
-  // 全員暴露済み
+  /*
+    全員暴露済みか確認
+  */
+
   const playerCount =
     Object.keys(game.characters).length;
 
   const exposedCount =
-    Object.keys(game.exposedThisRound || {}).length;
+    Object.keys(
+      game.exposedThisRound || {}
+    ).length;
 
   if (
     exposedCount >= playerCount &&
     myId === room.hostId
   ) {
 
-    const nextButton = document.createElement("button");
-    nextButton.className = "mainBtn";
+    const nextButton =
+      document.createElement("button");
 
-    if (game.round < game.maxRounds) {
+    nextButton.className =
+      "mainBtn";
+
+    if (
+      game.round <
+      game.maxRounds
+    ) {
+
       nextButton.textContent =
         "➡️ 次のラウンドへ";
 
-      nextButton.addEventListener("click", nextRound);
+      nextButton.addEventListener(
+        "click",
+        nextRound
+      );
 
     } else {
+
       nextButton.textContent =
         "🗳️ 最終投票へ";
 
-      nextButton.addEventListener("click", startVote);
+      nextButton.addEventListener(
+        "click",
+        startVote
+      );
     }
 
-    actionArea.appendChild(nextButton);
+    actionArea.appendChild(
+      nextButton
+    );
   }
 }
 
-// ==============================
-// 暴露
-// ==============================
+/* =========================
+   暴露
+========================= */
 
 async function revealPlayer(targetId) {
 
   const snapshot =
-    await get(ref(db, `rooms/${roomId}`));
+    await get(
+      ref(db, `rooms/${roomId}`)
+    );
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room = snapshot.val();
-  const game = room.game;
+  const room =
+    snapshot.val();
+
+  const game =
+    room.game;
 
   if (room.hostId !== myId) {
     return;
   }
 
-  if (game.exposedThisRound?.[targetId]) {
+  if (
+    game.exposedThisRound?.[targetId]
+  ) {
     return;
   }
 
@@ -647,7 +830,8 @@ async function revealPlayer(targetId) {
 
   const available =
     targetCards.filter(
-      card => !alreadyRevealed.includes(card)
+      card =>
+        !alreadyRevealed.includes(card)
     );
 
   if (available.length === 0) {
@@ -671,70 +855,96 @@ async function revealPlayer(targetId) {
     [targetId]: true
   };
 
-  await update(ref(db, `rooms/${roomId}/game`), {
-    revealedCards: newRevealed,
-    exposedThisRound: newExposed,
-    selectorId: room.hostId,
-    phase: "select"
-  });
+  await update(
+    ref(db, `rooms/${roomId}/game`),
+    {
+      revealedCards: newRevealed,
+
+      exposedThisRound: newExposed,
+
+      /*
+        毎回、館の主人が次を選ぶ
+      */
+
+      selectorId: room.hostId,
+
+      phase: "select"
+    }
+  );
 }
 
-// ==============================
-// 次のラウンド
-// ==============================
+/* =========================
+   次のラウンド
+========================= */
 
 async function nextRound() {
 
   const snapshot =
-    await get(ref(db, `rooms/${roomId}`));
+    await get(
+      ref(db, `rooms/${roomId}`)
+    );
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room = snapshot.val();
+  const room =
+    snapshot.val();
 
   if (room.hostId !== myId) {
     return;
   }
 
-  const game = room.game;
+  const game =
+    room.game;
 
-  await update(ref(db, `rooms/${roomId}/game`), {
-    round: game.round + 1,
-    exposedThisRound: {},
-    selectorId: room.hostId,
-    phase: "select"
-  });
+  await update(
+    ref(db, `rooms/${roomId}/game`),
+    {
+      round: game.round + 1,
+
+      exposedThisRound: {},
+
+      selectorId: room.hostId,
+
+      phase: "select"
+    }
+  );
 }
 
-// ==============================
-// 投票開始
-// ==============================
+/* =========================
+   投票開始
+========================= */
 
 async function startVote() {
 
   const snapshot =
-    await get(ref(db, `rooms/${roomId}`));
+    await get(
+      ref(db, `rooms/${roomId}`)
+    );
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room = snapshot.val();
+  const room =
+    snapshot.val();
 
   if (room.hostId !== myId) {
     return;
   }
 
-  await update(ref(db, `rooms/${roomId}`), {
-    status: "vote"
-  });
+  await update(
+    ref(db, `rooms/${roomId}`),
+    {
+      status: "vote"
+    }
+  );
 }
 
-// ==============================
-// 投票
-// ==============================
+/* =========================
+   投票
+========================= */
 
 function renderVote(room) {
 
@@ -749,67 +959,87 @@ function renderVote(room) {
   if (existingVote) {
 
     voteMessage.textContent =
-      "投票済みです。ほかのプレイヤーの投票を待っています……";
+      "投票しました。全員の投票を待っています……";
 
     return;
   }
 
   voteMessage.textContent =
-    "Discordで話し合って、犯人だと思う人に投票してください。";
+    "Discordで話し合い、犯人だと思う人物に投票してください。";
 
-  Object.entries(players).forEach(([id, player]) => {
+  Object.entries(players)
+    .forEach(([id, player]) => {
 
-    if (id === myId) {
-      return;
-    }
+      if (id === myId) {
+        return;
+      }
 
-    const button =
-      document.createElement("button");
+      const button =
+        document.createElement("button");
 
-    button.className = "mainBtn";
-    button.textContent =
-      `🔎 ${player.name}に投票`;
+      button.className =
+        "mainBtn";
 
-    button.addEventListener("click", () => {
-      castVote(id);
+      button.textContent =
+        `🔎 ${player.name}に投票`;
+
+      button.addEventListener(
+        "click",
+        () => castVote(id)
+      );
+
+      voteList.appendChild(button);
     });
-
-    voteList.appendChild(button);
-  });
 }
 
 async function castVote(targetId) {
 
   const snapshot =
-    await get(ref(db, `rooms/${roomId}`));
+    await get(
+      ref(db, `rooms/${roomId}`)
+    );
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room = snapshot.val();
+  const room =
+    snapshot.val();
 
   if (room.game?.votes?.[myId]) {
     return;
   }
 
-  await update(ref(db, `rooms/${roomId}/game/votes`), {
-    [myId]: targetId
-  });
+  await update(
+    ref(
+      db,
+      `rooms/${roomId}/game/votes`
+    ),
+    {
+      [myId]: targetId
+    }
+  );
 
-  checkAllVotes();
+  await checkAllVotes();
 }
+
+/* =========================
+   全員投票確認
+========================= */
 
 async function checkAllVotes() {
 
   const snapshot =
-    await get(ref(db, `rooms/${roomId}`));
+    await get(
+      ref(db, `rooms/${roomId}`)
+    );
 
   if (!snapshot.exists()) {
     return;
   }
 
-  const room = snapshot.val();
+  const room =
+    snapshot.val();
 
   const players =
     room.players || {};
@@ -822,113 +1052,261 @@ async function checkAllVotes() {
     Object.keys(players).length
   ) {
 
-    await update(ref(db, `rooms/${roomId}`), {
-      status: "result"
-    });
+    const counts = {};
+
+    Object.values(votes)
+      .forEach(targetId => {
+
+        counts[targetId] =
+          (counts[targetId] || 0) + 1;
+      });
+
+    const sorted =
+      Object.entries(counts)
+        .sort(
+          (a, b) =>
+            b[1] - a[1]
+        );
+
+    const highest =
+      sorted[0]?.[1] || 0;
+
+    const suspects =
+      sorted
+        .filter(
+          ([, count]) =>
+            count === highest
+        )
+        .map(
+          ([id]) => id
+        );
+
+    /*
+      ここで初めて
+      「犯人として選ばれた人物」
+      が決まる。
+
+      ゲーム開始時には
+      存在しなかった。
+    */
+
+    await update(
+      ref(db, `rooms/${roomId}/game`),
+      {
+        finalSuspectId:
+          suspects.length === 1
+            ? suspects[0]
+            : null,
+
+        finalSuspects:
+          suspects,
+
+        voteCounts:
+          counts,
+
+        phase: "ending",
+
+        /*
+          AIに渡す情報を
+          まとめて保存
+        */
+
+        aiInput: {
+          case:
+            room.game.case,
+
+          characters:
+            room.game.characters,
+
+          revealedCards:
+            room.game.revealedCards || {},
+
+          votes,
+
+          voteCounts:
+            counts,
+
+          selectedSuspects:
+            suspects
+        }
+      }
+    );
+
+    await update(
+      ref(db, `rooms/${roomId}`),
+      {
+        status: "result"
+      }
+    );
   }
 }
 
-// ==============================
-// 結果
-// ==============================
+/* =========================
+   結果
+========================= */
 
 function renderResult(room) {
+
+  const game =
+    room.game;
 
   const players =
     room.players || {};
 
-  const votes =
-    room.game?.votes || {};
+  const suspects =
+    game.finalSuspects || [];
 
-  const counts = {};
+  if (suspects.length === 0) {
 
-  Object.values(votes).forEach(targetId => {
-    counts[targetId] =
-      (counts[targetId] || 0) + 1;
-  });
+    resultText.innerHTML = `
+      <div class="storyBox">
+        <h2>🗳️ 投票結果</h2>
 
-  const sorted =
-    Object.entries(counts)
-      .sort((a, b) => b[1] - a[1]);
+        <p>
+          投票が割れました。
+        </p>
 
-  if (sorted.length === 0) {
-    resultText.innerHTML =
-      "<p>投票結果がありません。</p>";
+        <p>
+          誰も犯人として確定しませんでした。
+        </p>
+      </div>
+
+      <div class="storyBox">
+        <h2>🤖 AIエンディング準備完了</h2>
+
+        <p>
+          この結果とゲーム中の暴露情報を
+          AIに渡してエンディングを生成できます。
+        </p>
+      </div>
+    `;
+
     return;
   }
 
-  const highest =
-    sorted[0][1];
+  const suspectNames =
+    suspects.map(
+      id =>
+        players[id]?.name ||
+        "不明"
+    );
 
-  const suspects =
-    sorted
-      .filter(([, count]) => count === highest)
-      .map(([id]) => players[id]?.name || "不明");
+  const voteCounts =
+    game.voteCounts || {};
+
+  let voteHtml = "";
+
+  Object.entries(voteCounts)
+    .forEach(([id, count]) => {
+
+      const name =
+        players[id]?.name ||
+        "不明";
+
+      voteHtml += `
+        <p>
+          ${escapeHtml(name)}
+          ：${count}票
+        </p>
+      `;
+    });
 
   resultText.innerHTML = `
     <div class="storyBox">
+
+      <div class="label">
+        FINAL VOTE
+      </div>
+
       <h2>🗳️ 投票結果</h2>
-      <p>
-        最も票を集めた人物：
-        <strong>${suspects.map(escapeHtml).join("、")}</strong>
-      </p>
-      <p>
-        得票数：${highest}票
-      </p>
+
+      ${voteHtml}
+
     </div>
 
     <div class="storyBox">
-      <h2>🎬 次はエンディング</h2>
+
+      <div class="label">
+        SUSPECT
+      </div>
+
+      <h2>
+        🔎 犯人として選ばれた人物
+      </h2>
+
       <p>
-        この時点では、ゲーム開始時から決められた
-        「真犯人」は存在しません。
+        <strong>
+          ${suspectNames
+            .map(escapeHtml)
+            .join("、")}
+        </strong>
       </p>
+
+    </div>
+
+    <div class="storyBox">
+
+      <div class="label">
+        AI ENDING
+      </div>
+
+      <h2>
+        🤖 事件の真相
+      </h2>
+
       <p>
-        投票で選ばれた人物を犯人として、
-        公開された暴露カードや事件の情報をもとに
-        AIが事件の真相を作ります。
+        現在はAI接続前です。
       </p>
+
+      <p>
+        次の段階で、事件・人物設定・
+        公開された暴露カード・投票結果を
+        AIに送って、この人物が犯人だった
+        というエンディングを生成します。
+      </p>
+
     </div>
   `;
 }
 
-// ==============================
-// ホームへ
-// ==============================
+/* =========================
+   コードコピー
+========================= */
 
-backHomeBtn.addEventListener("click", () => {
-  location.reload();
-});
+copyBtn.addEventListener(
+  "click",
+  async () => {
 
-copyBtn.addEventListener("click", async () => {
+    try {
 
-  try {
-    await navigator.clipboard.writeText(roomId);
+      await navigator.clipboard
+        .writeText(roomId);
 
-    copyBtn.textContent =
-      "✅ コピーしました！";
-
-    setTimeout(() => {
       copyBtn.textContent =
-        "📋 コードをコピー";
-    }, 1500);
+        "✅ コピーしました！";
 
-  } catch {
-    lobbyMessage.textContent =
-      `ルームコード：${roomId}`;
+      setTimeout(() => {
+
+        copyBtn.textContent =
+          "📋 コードをコピー";
+
+      }, 1500);
+
+    } catch {
+
+      lobbyMessage.textContent =
+        `ルームコード：${roomId}`;
+    }
   }
-});
+);
 
-// ==============================
-// XSS対策
-// ==============================
+/* =========================
+   ホームへ
+========================= */
 
-function escapeHtml(text) {
-
-  return String(text)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+backHomeBtn.addEventListener(
+  "click",
+  () => {
+    location.reload();
+  }
+);
